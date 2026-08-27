@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+package:
+  name: hola-pichi
+  version: "1.0.0"
+
+source:
+  path: ../src
+
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install . --no-deps --no-build-isolation -vv
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python
+
+tests:
+  - script:
+      - hola-pichi
+
+about:
+  homepage: https://github.com/IntelligentRoboticsLabs
+  license: Apache-2.0
+  summary: Paquete de ejemplo del taller Pixi/RoboStack

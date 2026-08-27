@@ -1,0 +1,16 @@
+[workspace]
+name = "taller_ros2"
+channels = ["robostack-jazzy", "conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+ros-jazzy-desktop = "*"
+colcon-common-extensions = "*"
+setuptools = "<=58.2.0"
+
+[activation]
+scripts = ["install/setup.sh"]
+
+[tasks]
+build      = { cmd = "colcon build --symlink-install", inputs = ["src"] }
+run_talker = { cmd = "ros2 run mi_paquete talker_custom", depends-on = ["build"] }

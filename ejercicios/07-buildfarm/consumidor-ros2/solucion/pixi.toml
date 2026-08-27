@@ -1,0 +1,19 @@
+[workspace]
+name = "ros_ws"
+channels = [
+  "https://prefix.dev/workshop-pichi-<nombre>",
+  "robostack-jazzy",
+  "conda-forge",
+]
+platforms = ["linux-64"]
+
+[dependencies]
+ros-jazzy-ros-base = "*"
+colcon-common-extensions = "*"
+hola-pichi = "*"
+
+[tasks]
+build = "colcon build --symlink-install"
+
+[activation]
+scripts = ["install/setup.sh"]

@@ -1,0 +1,7 @@
+# Entornos y artefactos de Pixi/colcon/rattler-build generados al seguir los ejercicios
+.pixi/
+build/
+install/
+log/
+output/
+*.conda

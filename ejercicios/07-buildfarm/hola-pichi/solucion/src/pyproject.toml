@@ -1,0 +1,10 @@
+[project]
+name = "hola-pichi"
+version = "1.0.0"
+
+[project.scripts]
+hola-pichi = "hola_pichi:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

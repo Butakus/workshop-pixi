@@ -1,0 +1,10 @@
+[workspace]
+name = "consumidor_ws"
+channels = [
+  "https://prefix.dev/workshop-pichi-<nombre>",
+  "conda-forge",
+]
+platforms = ["linux-64"]
+
+[dependencies]
+hola-pichi = "*"
