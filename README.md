@@ -2,9 +2,9 @@
 
 ## Entornos reproducibles para ROS 2 con Pixi, RoboStack y Prefix.dev
 
-Material del workshop (~4 horas) sobre gestión de entornos reproducibles para ROS 2 con [Pixi](https://pixi.sh/), [RoboStack](https://robostack.github.io/) y [Prefix.dev](https://prefix.dev/).
+Material del workshop (~3 horas) sobre gestión de entornos reproducibles para ROS 2 con [Pixi](https://pixi.sh/), [RoboStack](https://robostack.github.io/) y [Prefix.dev](https://prefix.dev/).
 
-Autores: Francisco Martín Rico, Esteve Fernández.
+Autores: Francisco Martín Rico ([fmrico@gmail.com](mailto:fmrico@gmail.com)), Esteve Fernández ([esteve.fernandez@gmail.com](mailto:esteve.fernandez@gmail.com)).
 
 ## Contenido de este repositorio
 
