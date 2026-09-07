@@ -1,0 +1,988 @@
+\documentclass[aspectratio=169]{beamer}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{csquotes}
+\usepackage{tribhuvan}
+
+% other packages
+\usepackage{latexsym,amsmath,xcolor,multicol,booktabs,calligra}
+\usepackage{graphicx,listings,textcomp}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+
+\author[Francisco Martín Rico, Esteve Fernández]{%
+\begin{tabular}{cc}
+Francisco Martín Rico & Esteve Fernández \\
+\texttt{\footnotesize fmrico@gmail.com} & \texttt{\footnotesize esteve.fernandez@gmail.com}
+\end{tabular}%
+}
+\title[Pixi, RoboStack y Prefix.dev]{Desde que uso Pixi estoy tan Pichi}
+\subtitle{Entornos reproducibles para ROS 2 con Pixi, RoboStack y Prefix.dev}
+\institute{}
+
+\date{}
+\setbeamertemplate{date}{}
+
+% defs
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+\definecolor{halfgray}{gray}{0.55}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\bfseries\color{deepblue},
+    emphstyle=\ttfamily\color{deepred},
+    stringstyle=\color{deepgreen},
+    numbers=none,
+    breaklines=true,
+    showstringspaces=false,
+    rulesepcolor=\color{red!20!green!20!blue!20},
+    frame=shadowbox,
+    literate=
+      {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+      {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+      {ñ}{{\~n}}1 {Ñ}{{\~N}}1
+      {ü}{{\"u}}1 {Ü}{{\"U}}1
+      {¿}{{\textquestiondown}}1 {¡}{{\textexclamdown}}1
+}
+
+% Frame auxiliar para preguntas/mini-retos interactivos al público
+\newcommand{\preguntaframe}[1]{%
+\begin{frame}
+  \begin{center}
+  \begin{beamercolorbox}[sep=1em,center]{block title}
+  \Large \textbf{?} \; #1
+  \end{beamercolorbox}
+  \end{center}
+\end{frame}%
+}
+
+% Frame auxiliar para marcar el inicio de un bloque práctico
+\newcommand{\practicaframe}[2]{%
+\begin{frame}
+  \centering
+  \vfill
+  {\Large \textbf{PRÁCTICA}}\\[1em]
+  {\large #1}\\[0.5em]
+  {\color{halfgray} #2}
+  \vfill
+\end{frame}%
+}
+
+\begin{document}
+
+%-------------------------------------------------
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Agenda}
+    \tableofcontents[sectionstyle=show,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
+\end{frame}
+
+%=================================================
+\section[Introducción]{Introducción: ¿por qué ROS~2 necesita algo mejor?}
+%=================================================
+
+\begin{frame}{Antes de empezar\ldots}
+\begin{itemize}
+    \item ¿Cuántos habéis tenido un \lstinline|rosdep install| que falla distinto en vuestro portátil que en el del compañero?
+    \item ¿Cuántos tenéis un \texttt{Dockerfile} de ROS~2 de más de 150 líneas solo para fijar versiones?
+    \item ¿Cuántos tenéis instalado más de un \lstinline|/opt/ros/<distro>| en la misma máquina a la vez?
+\end{itemize}
+\vfill
+\begin{block}{}
+\centering No sois los únicos. Este workshop va de eso.
+\end{block}
+\end{frame}
+
+\begin{frame}{El problema, en tres capas}
+\begin{block}{Dependencias}
+ROS~2 vía \texttt{apt} está atado a una versión de Ubuntu concreta. Mezclar ROS con librerías de ML modernas (PyTorch, CUDA reciente) choca con lo que trae el repositorio del sistema.
+\end{block}
+\begin{block}{Reproducibilidad}
+\lstinline|apt install ros-jazzy-desktop| hoy y dentro de 6 meses puede instalar builds distintos. No hay lockfile. \texttt{rosdep} resuelve llamando a gestores distintos (\texttt{apt}, \texttt{pip}\ldots) sin fijar versiones.
+\end{block}
+\begin{block}{Overlays}
+El modelo underlay/overlay de \texttt{colcon} (\lstinline|source /opt/ros/.../setup.bash| $\rightarrow$ \lstinline|source install/setup.bash|) es manual y frágil.
+\end{block}
+\end{frame}
+
+\begin{frame}{¿Y Docker no resolvía esto?}
+\begin{itemize}
+    \item Docker aísla, pero \textbf{no fija automáticamente el contenido}: un \lstinline|apt-get install| dentro del Dockerfile sigue sin estar reproducido a menos que se congele todo a mano.
+    \item Overhead de build/caché por capas $\rightarrow$ iteración lenta en desarrollo.
+    \item No es multiplataforma ``gratis'': desarrollar en macOS/Windows para un target Linux añade capas de virtualización.
+\end{itemize}
+\vfill
+\begin{alertblock}{Mensaje clave}
+Docker sigue siendo válido para el despliegue final, pero no debería ser la \textbf{única} fuente de verdad de las dependencias del proyecto.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{La idea central de hoy}
+\begin{center}
+\Large
+¿Y si tuviéramos el equivalente a un \lstinline|package-lock.json|\\ o un \lstinline|Cargo.lock|\\[0.3em]
+\textbf{para ROS~2}?
+\vspace{1em}
+
+\normalsize
+Que funcione igual en tu portátil, en el del compañero y en CI.\\
+Sin \texttt{sudo}. Sin depender de la versión de Ubuntu.\\
+Sin tener que aprender Docker desde cero.
+\end{center}
+\end{frame}
+
+\begin{frame}{Las tres piezas}
+\begin{columns}[T]
+\column{0.32\linewidth}
+\begin{block}{Pixi}
+Gestor de entornos reproducible: lockfile, tasks, multi-entorno.
+\end{block}
+\column{0.32\linewidth}
+\begin{block}{RoboStack}
+ROS~2 empaquetado como paquetes conda, multiplataforma.
+\end{block}
+\column{0.32\linewidth}
+\begin{block}{Prefix.dev}
+Dónde vive y se publica todo: canales conda, públicos y privados.
+\end{block}
+\end{columns}
+\vfill
+\centering Hoy vamos a recorrer las tres, de teoría a práctica.
+\end{frame}
+
+%=================================================
+\section[¿Qué es Pixi?]{¿Qué es Pixi?}
+%=================================================
+
+\begin{frame}{¿Qué es Pixi?}
+\begin{itemize}
+    \item Gestor de entornos y paquetes \textbf{multiplataforma y multi-lenguaje}, escrito en Rust.
+    \item Construido sobre \textbf{Rattler}: librerías Rust que reimplementan el ecosistema conda (resolución, instalación, canales). Rattler no es una CLI, es el motor; Pixi es la interfaz de usuario.
+    \item Creado por el equipo de \textbf{prefix.dev} (los mismos autores de \textbf{mamba}).
+\end{itemize}
+\vfill
+\begin{alertblock}{No es ``conda pero más rápido''}
+Repiensa el flujo de trabajo: sin entorno base global, workspace-centric, lockfile nativo de primera clase.
+\end{alertblock}
+\end{frame}
+
+\preguntaframe{¿Quién ha usado conda o mamba antes? ¿Qué es lo que más odiáis?}
+
+\begin{frame}{Pixi frente a conda: diferencias de fondo}
+\begin{itemize}
+    \item Sin ``entorno base'' tipo Miniconda/Anaconda: Pixi es un binario estático, nada que activar a nivel de sistema.
+    \item \textbf{Workspace-centric}: todo vive en una carpeta con \lstinline|pixi.toml| + \lstinline|pixi.lock|, autocontenida, clonable, versionable en git.
+    \item Lockfile nativo de primera clase (\lstinline|pixi.lock|) — algo que conda nunca tuvo.
+    \item Combina en el mismo manifiesto dependencias \textbf{conda} (C++, CUDA, binarios de sistema) y \textbf{PyPI} (resueltas con un motor basado en \texttt{uv}).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Pixi vs. el resto del ecosistema}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Feature} & \textbf{Pixi} & \textbf{Conda} & \textbf{Pip} & \textbf{Poetry} \\
+\midrule
+Lockfile reproducible        & \checkmark & -- & -- & \checkmark \\
+Task runner integrado        & \checkmark & -- & -- & -- \\
+Multi-lenguaje (no solo Py)  & \checkmark & \checkmark & -- & -- \\
+Multi-entorno en un proyecto & \checkmark & parcial & -- & parcial \\
+\bottomrule
+\end{tabular}
+\vfill
+\begin{center}
+\textit{Pixi resuelve e instala un entorno desde cero \textasciitilde 3$\times$ más rápido que micromamba y $>$10$\times$ más rápido que conda clásico.}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]{Estructura de un \texttt{pixi.toml}}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+[workspace]
+name = "my_ros2_project"
+version = "0.1.0"
+channels = ["robostack-jazzy", "conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+ros-jazzy-desktop = "*"
+colcon-common-extensions = "*"
+
+[tasks]
+build = { cmd = "colcon build --symlink-install", inputs = ["src"] }
+sim   = "ros2 run turtlesim turtlesim_node"
+
+[activation]
+scripts = ["install/setup.sh"]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Secciones del manifiesto}
+\begin{itemize}
+    \item \lstinline|[workspace]| — metadatos + \lstinline|channels| + \lstinline|platforms|.
+    \item \lstinline|[dependencies]| (conda) / \lstinline|[pypi-dependencies]| (PyPI, resuelto con \texttt{uv}) — se pueden mezclar.
+    \item \lstinline|[tasks]| — comandos del proyecto.
+    \item \lstinline|[activation]| — scripts/env vars que se cargan automáticamente al activar el entorno.
+    \item \lstinline|[feature.*]| + \lstinline|[environments]| — varios entornos combinables en el mismo repo.
+    \item \lstinline|[target.<platform>.*]| — overrides específicos de plataforma.
+\end{itemize}
+\vfill
+\small También puede vivir embebido en \lstinline|pyproject.toml| bajo \lstinline|[tool.pixi.*]|.
+\end{frame}
+
+\begin{frame}[fragile]{Flujo de trabajo típico}
+\begin{terminal}
+pixi init             # crea el workspace (pixi.toml)
+pixi add <paquete>     # añade dependencia, resuelve, instala
+pixi install           # instala desde el lockfile existente
+pixi run <comando>     # ejecuta dentro del entorno, sin "activate"
+pixi shell             # abre un shell interactivo con el entorno activado
+pixi task add / list    # gestiona tasks
+pixi lock / pixi update  # gestiona el lockfile
+pixi global install     # instala herramientas CLI globales, aisladas
+\end{terminal}
+\end{frame}
+
+\begin{frame}{Lockfiles: el porqué de la reproducibilidad}
+\begin{itemize}
+    \item \lstinline|pixi.lock| fija versión exacta, build hash y \textbf{sha256} de cada paquete (conda y PyPI), \textbf{por cada plataforma declarada}.
+    \item Se actualiza automáticamente con \lstinline|pixi add| / \lstinline|pixi install| / \lstinline|pixi run|.
+    \item \lstinline|pixi install --locked| $\rightarrow$ falla si el lockfile no está sincronizado (ideal para CI).
+    \item \lstinline|pixi install --frozen| $\rightarrow$ instala exactamente lo que dice el lockfile.
+\end{itemize}
+\vfill
+\begin{block}{Mensaje central}
+\lstinline|pixi.lock| se commitea a git: todo el equipo, CI y hasta el propio robot instalan exactamente los mismos binarios, byte a byte.
+\end{block}
+\end{frame}
+
+\begin{frame}{Tasks y entornos multiplataforma (aperitivo)}
+\begin{itemize}
+    \item Las tasks pueden encadenarse (\lstinline|depends-on|), cachear por \lstinline|inputs|/\lstinline|outputs| (no recompila si nada cambió), y tener parámetros con Jinja.
+    \item \lstinline|platforms = [...]| permite resolver dependencias distintas por SO/arquitectura en el mismo \lstinline|pixi.lock| — incluso requisitos ``ricos'' como CUDA o versión mínima de glibc.
+\end{itemize}
+\vfill
+\centering \small Todo esto se practica en el siguiente bloque.
+\end{frame}
+
+\begin{frame}{Ventajas concretas para ROS~2}
+\centering
+\begin{tabular}{p{5.2cm}p{6.2cm}}
+\toprule
+\textbf{Problema} & \textbf{Cómo lo resuelve Pixi} \\
+\midrule
+ROS atado a versión de Ubuntu & Paquetes conda multiplataforma, sin depender de \texttt{apt} \\
+Sin reproducibilidad real & \lstinline|pixi.lock| fija todo, byte a byte, por plataforma \\
+Overlays manuales y frágiles & \lstinline|[activation]| automatiza el \texttt{source} en cada \lstinline|pixi shell|/\lstinline|run| \\
+Varias distros ROS a la vez & \lstinline|[environments]| — Humble y Jazzy en paralelo, mismo repo \\
+\bottomrule
+\end{tabular}
+\end{frame}
+
+\begin{frame}{Un dato honesto}
+\begin{alertblock}{RoboStack es hoy Tier 3}
+En la clasificación oficial de plataformas de ROS: soporte \textbf{comunitario}, no de Open Robotics.
+\end{alertblock}
+\vfill
+Pero con adopción creciente, y comunicación de que formará parte de la estrategia de accesibilidad de Open Robotics.
+\end{frame}
+
+%=================================================
+\section[Práctica: Pixi básico]{Instalación y uso básico de Pixi}
+%=================================================
+
+\practicaframe{Instalación y uso básico de Pixi}{30 minutos}
+
+\begin{frame}{Objetivo de este bloque}
+\begin{itemize}
+    \item Instalar Pixi y crear el primer workspace.
+    \item Añadir dependencias, ejecutar comandos, definir tasks encadenadas con caché.
+    \item Practicar múltiples entornos en el mismo proyecto.
+\end{itemize}
+\vfill
+\begin{alertblock}{Todavía sin ROS}
+Usamos ejemplos ligeros en Python para dominar la mecánica de Pixi sin mezclar curvas de aprendizaje. ROS llega en el bloque 5.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 1 — Instalación y primer workspace}
+\begin{terminal}
+curl -fsSL https://pixi.sh/install.sh | sh
+# reiniciar la terminal
+pixi --version
+\end{terminal}
+\begin{terminal}
+pixi init pixi-demo
+cd pixi-demo
+cat pixi.toml
+ls -la
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: \lstinline|pixi.toml| recién generado con \lstinline|[workspace]|, además de \lstinline|.gitignore| y \lstinline|.gitattributes|.
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2 — Dependencias y ejecución}
+\begin{terminal}
+pixi add python=3.11 numpy rich
+pixi run python -c "import numpy; print(numpy.__version__)"
+pixi list
+pixi tree numpy
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: \lstinline|pixi list| muestra versiones exactas; \lstinline|pixi tree| muestra dependencias transitivas. \lstinline|pixi.lock| ha cambiado.
+\end{frame}
+
+\preguntaframe{¿\lstinline|pixi add --pypi requests| y \lstinline|pixi add requests| instalan lo mismo?}
+
+\begin{frame}[fragile]{Ejercicio 3 — Tasks encadenadas y con caché}
+\begin{lstlisting}
+[tasks]
+hello = "python -c \"print('hola workshop')\""
+build = { cmd = "python -m py_compile main.py",
+          depends-on = ["hello"], inputs = ["main.py"] }
+\end{lstlisting}
+\begin{terminal}
+echo "print('soy main.py')" > main.py
+pixi run build
+pixi task list
+\end{terminal}
+\vfill
+\textbf{Reto}: ejecutar \lstinline|pixi run build| dos veces sin tocar \lstinline|main.py|. ¿Qué esperáis que cambie?
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4 — Multi-entorno con features}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+[feature.py310.dependencies]
+python = "3.10.*"
+[feature.py311.dependencies]
+python = "3.11.*"
+
+[environments]
+py310 = ["py310"]
+py311 = ["py311"]
+\end{lstlisting}
+\begin{terminal}
+pixi install
+pixi run -e py310 python --version
+pixi run -e py311 python --version
+\end{terminal}
+\small \textbf{Checkpoint}: dos versiones de Python distintas, mismo repo, sin virtualenvs.
+\end{frame}
+
+\begin{frame}{Cierre del bloque}
+\centering
+\Large \lstinline|init| \quad \lstinline|add| \quad \lstinline|run| \quad \lstinline|shell| \quad \lstinline|task| \quad \lstinline|environments|
+\vfill
+\normalsize
+Esto —dos versiones de Python conviviendo en el mismo proyecto— es exactamente el mecanismo que usaremos para tener ROS~2 Humble y Jazzy en el mismo repo sin pisarse.
+\end{frame}
+
+%=================================================
+\section[¿Qué es RoboStack?]{¿Qué es RoboStack?}
+%=================================================
+
+\begin{frame}{¿Qué es RoboStack?}
+\begin{itemize}
+    \item Empaqueta distribuciones completas de ROS~1/2 como \textbf{paquetes conda}.
+    \item Convención de nombres: \lstinline|ros-<distro>-<paquete>|, p.\,ej. \lstinline|ros-jazzy-desktop|, \lstinline|ros-jazzy-rclcpp|.
+    \item Permite \lstinline|pixi add ros-jazzy-desktop| igual que se añadiría \texttt{numpy}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Origen y motivación}
+\begin{itemize}
+    \item Paper académico: \emph{``A RoboStack Tutorial''}, Fischer et al., IEEE Robotics \& Automation Magazine, 2021 (arXiv:2104.12910).
+    \item Wolf Vollprecht (creador de mamba, cofundador de prefix.dev) y Tobias Fischer, entre otros.
+    \item Motivación original: mezclar ROS con el ecosistema de ciencia de datos (PyTorch, Jupyter, OpenCV) sin pelearse con versiones fijas de \texttt{apt}, sin \texttt{sudo}, y en macOS/Windows además de Linux.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Canales conda de RoboStack}
+\centering
+\begin{tabular}{p{4cm}p{7cm}}
+\toprule
+\textbf{Canal} & \textbf{Para qué sirve} \\
+\midrule
+\lstinline|robostack-<distro>| & \textbf{Recomendado para uso normal.} Uno por distro ROS. \\
+\lstinline|robostack-staging| & Interno/histórico, proceso de build de los mantenedores. \\
+\lstinline|conda-forge| & Dependencias no-ROS (compiladores, Boost, OpenCV, Python\ldots). \\
+\bottomrule
+\end{tabular}
+\vfill
+\begin{alertblock}{Regla simple}
+Para uso normal, siempre \lstinline|robostack-<vuestra-distro>| + \lstinline|conda-forge|. Nada más.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Compatibilidad multiplataforma}
+\begin{itemize}
+    \item Linux: \lstinline|linux-64|, \lstinline|linux-aarch64|
+    \item macOS: \lstinline|osx-64|, \lstinline|osx-arm64| (sí, ROS~2 en Apple Silicon)
+    \item Windows: \lstinline|win-64|
+\end{itemize}
+\vfill
+CI propio por plataforma en GitHub Actions.
+\end{frame}
+
+\begin{frame}{Aviso importante}
+\begin{alertblock}{\texttt{rosdep} no funciona dentro de Pixi/RoboStack}
+Se salta la resolución de Pixi llamando directamente a \texttt{apt}/\texttt{pip} del sistema.
+\end{alertblock}
+\vfill
+\begin{itemize}
+    \item Las dependencias de un paquete propio hay que traducirlas a mano: \lstinline|pixi add ros-<distro>-<paquete>|.
+    \item O usar la herramienta comunitaria \textbf{pixi-ros}, que lee los \lstinline|package.xml| del workspace y genera el \lstinline|pixi.toml|.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Relación con Pixi}
+\begin{center}
+\Large RoboStack no sustituye a Pixi.\\
+Es ``solo'' un conjunto de canales conda más.
+\end{center}
+\vfill
+Todo lo del bloque anterior (\lstinline|add|, \lstinline|run|, \lstinline|shell|, tasks, \lstinline|[environments]|, \lstinline|[activation]|) se aplica sin cambios.
+\end{frame}
+
+\preguntaframe{Con lo que sabéis de Pixi, ¿cómo creéis que se instalaría ROS~2 Jazzy Desktop?}
+
+%=================================================
+\section[Práctica: RoboStack]{Uso básico de RoboStack para compilar un workspace ROS~2}
+%=================================================
+
+\practicaframe{RoboStack + colcon}{20 minutos}
+
+\begin{frame}[fragile]{Ejercicio 1 — Entorno ROS~2 en dos comandos}
+\begin{terminal}
+pixi init taller_ros2 -c robostack-jazzy -c conda-forge
+cd taller_ros2
+pixi add ros-jazzy-desktop
+pixi run ros2 topic list
+\end{terminal}
+\begin{terminal}
+# Terminal 1
+pixi run ros2 run demo_nodes_cpp talker
+# Terminal 2
+pixi run ros2 run demo_nodes_cpp listener
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: el listener recibe los mensajes del talker. Sin \texttt{sudo}, sin tocar el sistema.
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2 — Paquete propio + colcon}
+\begin{terminal}
+pixi add colcon-common-extensions "setuptools<=58.2.0"
+mkdir src
+pixi run ros2 pkg create --build-type ament_python \
+  --destination-directory src --node-name talker_custom mi_paquete
+pixi run colcon build --symlink-install
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: aparecen \lstinline|build/|, \lstinline|install/|, \lstinline|log/| junto a \lstinline|src/|.
+\end{frame}
+
+\begin{frame}[fragile]{El overlay, automatizado}
+\begin{lstlisting}
+# añadir a pixi.toml
+[activation]
+scripts = ["install/setup.sh"]
+\end{lstlisting}
+\begin{terminal}
+pixi shell
+echo $AMENT_PREFIX_PATH   # install/ del workspace, primero
+ros2 run mi_paquete talker_custom
+exit
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: \lstinline|$AMENT_PREFIX_PATH| lista \lstinline|.../taller_ros2/install| como primera entrada. Overlay funcionando, sin \lstinline|source install/setup.bash| a mano.
+\end{frame}
+
+\preguntaframe{¿Qué pasaría si borro \texttt{install/} pero dejo el \texttt{[activation]} en el \texttt{pixi.toml}?}
+
+\begin{frame}[fragile]{Ejercicio 3 — Tasks con caché encadenadas}
+\begin{lstlisting}
+[tasks]
+build      = { cmd = "colcon build --symlink-install", inputs = ["src"] }
+run_talker = { cmd = "ros2 run mi_paquete talker_custom",
+               depends-on = ["build"] }
+\end{lstlisting}
+\begin{terminal}
+pixi run run_talker
+pixi run run_talker   # 2a vez: ¿recompila?
+# editar talker_custom.py y repetir
+pixi run run_talker   # 3a vez: ¿y ahora?
+\end{terminal}
+\end{frame}
+
+\begin{frame}{Ejercicio 4 — Un workspace real: Nav2 con \texttt{pixi-ros}}
+\begin{itemize}
+    \item Hasta ahora, un paquete de juguete. ¿Y un workspace real y grande?
+    \item Y de paso, resolvemos lo que dejamos abierto en el bloque anterior: si \texttt{rosdep} no funciona, ¿cómo relleno las dependencias de un \lstinline|package.xml| real sin hacerlo a mano?
+\end{itemize}
+\vfill
+\begin{block}{\texttt{pixi-ros}}
+Herramienta de la comunidad Pixi: escanea los \lstinline|package.xml| del workspace y rellena el \lstinline|pixi.toml| con las dependencias ya resueltas a paquetes conda de RoboStack. El \texttt{rosdep install} moderno, pero reproducible.
+\end{block}
+\vfill
+\begin{alertblock}{Aviso de timing}
+Nav2 son más de 80 paquetes C++. El instructor lanza el build al empezar el bloque anterior — aquí mostramos el resultado en vivo.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Preparar el workspace}
+\begin{terminal}
+pixi global install pixi-ros
+\end{terminal}
+\begin{terminal}
+mkdir -p nav2_ws/src && cd nav2_ws
+git clone -b jazzy https://github.com/ros-navigation/navigation2.git \
+  src/navigation2
+\end{terminal}
+\end{frame}
+
+\begin{frame}[fragile]{Rellenar dependencias automáticamente}
+\begin{terminal}
+pixi-ros init --distro jazzy --platform linux-64
+\end{terminal}
+\begin{itemize}
+    \item Escanea todos los \lstinline|package.xml| (\lstinline|nav2_bt_navigator|, \lstinline|nav2_costmap_2d|, \lstinline|nav2_planner|\ldots).
+    \item Resuelve cada dependencia por prioridad: workspace $\rightarrow$ ficheros de mapeo $\rightarrow$ índice de la distro ROS $\rightarrow$ conda-forge $\rightarrow$ canales extra.
+    \item Muestra una tabla de validación con el origen de cada dependencia.
+\end{itemize}
+\vfill
+\textbf{Checkpoint}: el \lstinline|pixi.toml| generado tiene decenas de \lstinline|ros-jazzy-*| + herramientas de build, y un bloque \lstinline|[tasks]| con \lstinline|build|/\lstinline|test| ya creados (\texttt{colcon} por debajo). Es idempotente.
+\end{frame}
+
+\begin{frame}[fragile]{Compilar y verificar}
+\begin{terminal}
+pixi install
+pixi run build
+\end{terminal}
+\begin{terminal}
+pixi shell
+ros2 pkg list | grep nav2
+ros2 pkg executables nav2_costmap_2d
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: decenas de paquetes \lstinline|nav2_*|, compilados dentro de este entorno Pixi, sin tocar el sistema ni usar \texttt{rosdep}.
+\end{frame}
+
+\begin{frame}[fragile]{El cierre real: simulación + RViz2}
+\lstinline|nav2_bringup| declara en su \lstinline|package.xml|: \lstinline|ros_gz_bridge|, \lstinline|ros_gz_sim|, \lstinline|xacro|, \lstinline|slam_toolbox|, \lstinline|nav2_minimal_tb3_sim|.
+\vfill
+\begin{block}{}
+Todo ya resuelto por \texttt{pixi-ros} como binarios conda de RoboStack. No hace falta clonar ningún repo más.
+\end{block}
+\begin{terminal}
+ros2 launch nav2_bringup tb3_simulation_launch.py
+\end{terminal}
+\vfill
+Levanta \textbf{Gazebo Sim} (\lstinline|gz sim|) con el robot spawneado, toda la pila de Nav2, y \textbf{RViz2} con la vista por defecto.
+\end{frame}
+
+\begin{frame}{Mandar al robot a navegar, en RViz2}
+\begin{enumerate}
+    \item Botón \textbf{2D Pose Estimate}: click y arrastra sobre el mapa en la posición/orientación real del robot (localizarlo para AMCL).
+    \item Botón \textbf{Nav2 Goal}: click y arrastra en el punto de destino, con la orientación final deseada.
+    \item El robot planifica una ruta y se mueve solo hasta el objetivo, esquivando obstáculos.
+\end{enumerate}
+\vfill
+\textbf{Checkpoint}: el robot navega autónomamente en la simulación — Gazebo, RViz2 y Nav2 completo, dentro del mismo entorno Pixi, sin \texttt{sudo}, sin \texttt{apt}, sin Docker.
+\vfill
+\begin{alertblock}{Aviso honesto: GPU/OpenGL}
+\lstinline|gz sim| necesita una pila gráfica funcional. En VMs/WSL2 sin passthrough de GPU puede fallar o ir lento — probadlo antes del taller. Fallback: \lstinline|LIBGL_ALWAYS_SOFTWARE=1| delante del comando, o hacerlo como demo proyectada del instructor.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 5.5 (opcional) — Varias distros ROS~2 a la vez (1/2)}
+Mismo patrón que el ejercicio 3.4 (Python), pero cada distro RoboStack vive en su propio canal: no se pueden mezclar \lstinline|robostack-jazzy| y \lstinline|robostack-humble| en la misma resolución.
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+[feature.jazzy]
+channels = ["robostack-jazzy", "conda-forge"]
+[feature.jazzy.dependencies]
+ros-jazzy-desktop = "*"
+
+[feature.humble]
+channels = ["robostack-humble", "conda-forge"]
+[feature.humble.dependencies]
+ros-humble-desktop = "*"
+
+[environments]
+jazzy  = ["jazzy"]
+humble = ["humble"]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 5.5 (opcional) — Varias distros ROS~2 a la vez (2/2)}
+\begin{terminal}
+pixi install
+pixi run -e jazzy  ros2 --version
+pixi run -e humble ros2 --version
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: cada comando reporta la versión de \lstinline|ros2| de su propia distro — dos ROS~2 completos, en el mismo repositorio, sin pisarse.
+\end{frame}
+
+\begin{frame}{Dos ROS a la vez, sin pisarse}
+\begin{center}
+\Large Imposible o muy incómodo con \texttt{apt}.\\[0.3em]
+Con Pixi, un \lstinline|[environments]| más.
+\end{center}
+\vfill
+\normalsize Exactamente el mismo mecanismo del bloque 3 con Python — solo cambia qué metemos dentro de cada \emph{feature}.
+\end{frame}
+
+%=================================================
+\section[Infraestructura RoboStack]{Infraestructura de RoboStack}
+%=================================================
+
+\begin{frame}{De \texttt{package.xml} a paquete conda}
+En el bloque anterior usamos paquetes ya construidos. ¿Cómo se construyen?
+\begin{itemize}
+    \item \textbf{vinca}: lee el \emph{rosdistro} oficial (metadata + \lstinline|package.xml| de cada paquete) y un fichero \lstinline|vinca.yaml|, y genera recetas en formato \textbf{rattler-build} (\lstinline|recipe.yaml|, esquema \texttt{prefix-dev/recipe-format}).
+    \item \textbf{rattler-build}: el motor que compila cada receta y produce el \lstinline|.conda| final. Sucesor moderno de \texttt{conda-build}/\texttt{boa}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Recetas y build farms}
+\begin{itemize}
+    \item Cada repo de distro (\texttt{RoboStack/ros-jazzy}, \texttt{ros-humble}, \texttt{ros-kilted}\ldots) contiene la \emph{configuración} (\lstinline|vinca.yaml|, \lstinline|robostack.yaml|, \lstinline|patches/|, \lstinline|conda_build_config.yaml|) — pero \textbf{no} recetas estáticas: se regeneran en cada build.
+    \item CI en \textbf{GitHub Actions}, matriz por plataforma (\lstinline|linux-64|, \lstinline|linux-aarch64|, \lstinline|osx-64|, \lstinline|osx-arm64|, \lstinline|win-64|), con caché de builds y generación dinámica de workflows.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Relación con conda-forge y contribución}
+\begin{itemize}
+    \item RoboStack se apoya en \textbf{conda-forge} para todas las dependencias no-ROS (compiladores, Boost, PCL, OpenCV, Python\ldots).
+    \item Contribuir un paquete nuevo, en general: PR de una línea en \lstinline|vinca.yaml| $\rightarrow$ CI intenta construirlo en todas las plataformas $\rightarrow$ si falla, parche local guardado en \lstinline|patches/| $\rightarrow$ rebuild para validar.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[node distance=1.1cm, every node/.style={font=\small}]
+\node[draw, rounded corners, fill=blue!10, minimum width=3.2cm, minimum height=0.9cm] (pkgxml) {\lstinline|package.xml| (ROS)};
+\node[draw, rounded corners, fill=orange!15, minimum width=3.2cm, minimum height=0.9cm, right=1.4cm of pkgxml] (vinca) {vinca};
+\node[draw, rounded corners, fill=orange!15, minimum width=3.6cm, minimum height=0.9cm, right=1.4cm of vinca] (recipe) {\lstinline|recipe.yaml|};
+\node[draw, rounded corners, fill=green!15, minimum width=3.4cm, minimum height=0.9cm, below=1.2cm of vinca] (rattler) {rattler-build};
+\node[draw, rounded corners, fill=green!25, minimum width=3.4cm, minimum height=0.9cm, right=1.4cm of rattler] (conda) {paquete \lstinline|.conda|};
+\draw[-Latex, thick] (pkgxml) -- (vinca);
+\draw[-Latex, thick] (vinca) -- (recipe);
+\draw[-Latex, thick] (recipe) |- (rattler);
+\draw[-Latex, thick] (rattler) -- (conda);
+\end{tikzpicture}%
+}
+\end{center}
+\vfill
+\centering \small Este es exactamente el pipeline que vais a recorrer, en pequeño, en el próximo bloque práctico.
+\end{frame}
+
+%=================================================
+\section[Práctica: tu buildfarm]{Tu propia Buildfarm basada en RoboStack}
+%=================================================
+
+\practicaframe{Tu propia Buildfarm}{35 minutos}
+
+\begin{frame}{Objetivo y nota de diseño}
+\begin{itemize}
+    \item Construir un paquete conda propio con \texttt{rattler-build}.
+    \item Publicarlo en un canal de prefix.dev.
+    \item Instalarlo desde un \lstinline|pixi.toml| propio.
+    \item Integrarlo en un workspace ROS~2.
+\end{itemize}
+\vfill
+\begin{alertblock}{No usamos Vinca hoy}
+Generar recetas reales de ROS~2 completo tarda demasiado para 1h. Escribimos una receta \texttt{rattler-build} sencilla, con el mismo formato exacto que usa la buildfarm real.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Fase A — Preparar el proyecto (1/3)}
+\begin{terminal}
+mkdir -p ~/taller-pixi/mi-paquete && cd ~/taller-pixi/mi-paquete
+pixi init .
+pixi add rattler-build rattler-index
+mkdir -p src recipe
+\end{terminal}
+\begin{lstlisting}
+# src/pyproject.toml
+[project]
+name = "hola-pichi"
+version = "1.0.0"
+[project.scripts]
+hola-pichi = "hola_pichi:main"
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Fase A — La receta \texttt{rattler-build} (2/3)}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+# recipe/recipe.yaml
+package:
+  name: hola-pichi
+  version: "1.0.0"
+source:
+  path: ../src
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install . --no-deps --no-build-isolation -vv
+requirements:
+  host: [python, pip]
+  run: [python]
+tests:
+  - script: [hola-pichi]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Fase A — Construir el paquete (3/3)}
+\begin{terminal}
+pixi run rattler-build build --recipe ./recipe/recipe.yaml -c conda-forge
+ls output/noarch/*.conda
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: debe existir un fichero \lstinline|output/noarch/hola-pichi-1.0.0-*.conda|.
+\vfill
+\small Esta receta usa exactamente el mismo formato (\texttt{recipe-format} de prefix.dev) que genera Vinca automáticamente para cada paquete ROS~2.
+\end{frame}
+
+\begin{frame}[fragile]{Fase B — Publicar en prefix.dev}
+\begin{terminal}
+export PREFIX_API_KEY="pfx_..."
+
+pixi run rattler-build upload prefix \
+  --channel workshop-pichi-<nombre> \
+  --skip-existing \
+  output/noarch/*.conda
+\end{terminal}
+\vfill
+\textbf{Checkpoint}: el paquete \texttt{hola-pichi} aparece listado en el canal, en prefix.dev.
+\vfill
+\begin{alertblock}{Canal público vs. privado}
+Plan free: 1 canal privado disponible. Usamos uno público hoy por simplicidad — la gestión de permisos de canales privados no se cubre en este taller.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Fase C — Instalar desde un \texttt{pixi.toml} propio}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+# pixi.toml
+[workspace]
+name = "consumidor_ws"
+channels = ["https://prefix.dev/workshop-pichi-<nombre>", "conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+hola-pichi = "*"
+\end{lstlisting}
+\begin{terminal}
+pixi install
+pixi run hola-pichi
+\end{terminal}
+\vfill
+\small \textbf{Troubleshooting}: si no aparece (\texttt{No candidates found}) $\rightarrow$ \lstinline|pixi clean cache --repodata -y|
+\end{frame}
+
+\begin{frame}[fragile]{Fase D — Integrarlo en un workspace ROS~2}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+[workspace]
+channels = ["https://prefix.dev/workshop-pichi-<nombre>",
+            "robostack-jazzy", "conda-forge"]
+platforms = ["linux-64"]
+[dependencies]
+ros-jazzy-ros-base = "*"
+colcon-common-extensions = "*"
+hola-pichi = "*"
+[tasks]
+build = "colcon build --symlink-install"
+[activation]
+scripts = ["install/setup.sh"]
+\end{lstlisting}
+\begin{terminal}
+pixi install && pixi shell
+hola-pichi
+\end{terminal}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=0.9cm, every node/.style={font=\footnotesize}]
+\node[draw, rounded corners, fill=green!15, minimum width=2.6cm, minimum height=0.8cm] (a) {receta};
+\node[draw, rounded corners, fill=green!20, minimum width=2.6cm, minimum height=0.8cm, right=0.9cm of a] (b) {rattler-build};
+\node[draw, rounded corners, fill=orange!15, minimum width=2.6cm, minimum height=0.8cm, right=0.9cm of b] (c) {prefix.dev};
+\node[draw, rounded corners, fill=blue!12, minimum width=2.6cm, minimum height=0.8cm, right=0.9cm of c] (d) {\lstinline|pixi.toml|};
+\node[draw, rounded corners, fill=blue!20, minimum width=2.6cm, minimum height=0.8cm, right=0.9cm of d] (e) {workspace ROS~2};
+\draw[-Latex, thick] (a) -- (b);
+\draw[-Latex, thick] (b) -- (c);
+\draw[-Latex, thick] (c) -- (d);
+\draw[-Latex, thick] (d) -- (e);
+\end{tikzpicture}%
+}
+\end{center}
+\vfill
+\begin{center}
+\Large Habéis recorrido el mismo camino que una build farm real.
+\end{center}
+\vfill
+\normalsize Receta $\rightarrow$ rattler-build $\rightarrow$ prefix.dev $\rightarrow$ \lstinline|pixi.toml| $\rightarrow$ mezclado con ROS~2 oficial de RoboStack. Todo con lockfile, sin \texttt{sudo}, sin Docker, multiplataforma.
+\end{frame}
+
+\begin{frame}{Y así lo hacemos de verdad, en producción}
+\begin{center}
+\normalsize \texttt{IntelligentRoboticsLabs}, para distribuir\\ PlanSys2 y EasyNav como paquetes ROS reproducibles.
+\end{center}
+\vfill
+\begin{block}{El patrón: forkear, no reinventar}
+\texttt{ros-rolling} y \texttt{ros-jazzy} son \textbf{forks directos} de \texttt{RoboStack/ros-rolling} y \texttt{RoboStack/ros-jazzy}.
+\end{block}
+\vfill
+Reutilizan el 100\% del motor (Pixi + Vinca + rattler-build + CI + patches) que acabáis de usar en pequeño. Lo único que añaden: \textbf{un fichero que dice qué construir}.
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{plansys2\_subset/vinca.yaml}}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+ros_distro: rolling
+conda_index:
+  - robostack.yaml
+  - packages-ignore.yaml
+
+# Los paquetes ya en robostack-rolling se dan por existentes
+skip_existing:
+  - https://prefix.dev/robostack-rolling/
+
+# Solo estos paquetes (sus dependencias se resuelven solas)
+packages_select_by_deps:
+  - plansys2_bringup
+  - plansys2_core
+  - plansys2_domain_expert
+  - plansys2_executor
+  # ... resto de paquetes plansys2_*
+  - popf
+  - rclcpp_cascade_lifecycle
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{El atajo, y el flujo manual detrás}
+\begin{terminal}
+cd ros-rolling
+pixi install
+pixi run plansys2-all
+\end{terminal}
+\vfill
+\small Por debajo (idéntico al runbook genérico, apuntando al subset con \texttt{-d}):
+\begin{terminal}
+pixi run vinca -d ./plansys2_subset --platform linux-64 -m
+pixi run rattler-build build --recipe-dir ./recipes \
+  -c https://prefix.dev/robostack-rolling --skip-existing
+pixi run rattler-index fs ./output --force
+pixi run rattler-build upload prefix --channel irl-rolling ...
+\end{terminal}
+\end{frame}
+
+\begin{frame}[fragile]{Cómo lo consume alguien}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+[workspace]
+name = "plansys2_ws"
+channels = [
+  "file:///.../ros-rolling/output",       # local, para iterar
+  "https://prefix.dev/irl-rolling",        # canal propio
+  "https://prefix.dev/robostack-rolling",  # ROS 2 oficial
+  "https://prefix.dev/conda-forge",
+]
+platforms = ["linux-64"]
+
+[dependencies]
+ros-rolling-ros-base = "*"
+ros-rolling-plansys2-bringup = "*"
+ros-rolling-plansys2-core = "*"
+ros-rolling-popf = "*"
+\end{lstlisting}
+\vfill
+\small El orden importa: local $\rightarrow$ canal propio $\rightarrow$ RoboStack oficial $\rightarrow$ conda-forge.
+\end{frame}
+
+\begin{frame}{Esto funciona de verdad}
+\begin{itemize}
+    \item PlanSys2 + simulación de Nav2, 4 nodos coordinados (\texttt{rmw\_zenohd}, \texttt{nav2\_sim\_node}, launch con árbol de comportamiento, controlador).
+    \item Reproducible con \lstinline|pixi install| + \lstinline|pixi run build|.
+\end{itemize}
+\vfill
+\begin{alertblock}{Aviso honesto}
+La publicación a prefix.dev es \textbf{manual/local} — no está automatizada en ningún workflow de CI comprometido en el repo.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Para empresas e instituciones}
+\begin{center}
+\large Si tenéis software propio que queréis distribuir\\ como paquetes ROS reproducibles:
+\end{center}
+\vfill
+\begin{enumerate}
+    \item Fork del repo de RoboStack de vuestra distro.
+    \item Vuestro propio \lstinline|<algo>_subset/vinca.yaml| seleccionando qué construir.
+    \item Reutilizad el resto de la infraestructura tal cual.
+\end{enumerate}
+\vfill
+\centering \normalsize No hace falta reinventar nada de esto.
+\end{frame}
+
+\begin{frame}{Reto final (si sobra tiempo)}
+\begin{itemize}
+    \item Tomad \lstinline|mi_paquete| del bloque 5 (el nodo ROS~2 propio).
+    \item Convertidlo en una receta \texttt{rattler-build} (dependiendo de \lstinline|ros-jazzy-rclpy|).
+    \item Publicadlo en vuestro mismo canal.
+\end{itemize}
+\vfill
+\centering Cerrando el círculo completo con un paquete ROS real.
+\end{frame}
+
+%=================================================
+\section[Cierre]{Cierre}
+%=================================================
+
+\begin{frame}{Resumen de timing}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Bloque} & \textbf{Duración} & \textbf{Tipo} \\
+\midrule
+1. Introducción & 10 min & Teoría \\
+2. ¿Qué es Pixi? & 30 min & Teoría \\
+3. Instalación y uso básico de Pixi & 30 min & Práctica \\
+4. ¿Qué es RoboStack? & 15 min & Teoría \\
+5. RoboStack + colcon & 20 min$^*$ & Práctica \\
+6. Infraestructura de RoboStack & 15 min & Teoría \\
+7. Tu propia Buildfarm & 35 min & Práctica \\
+\midrule
+\textbf{Núcleo} & \textbf{155 min} & \\
+\textbf{Total esperado} & \textbf{\textasciitilde 165-170 min (\textasciitilde 3h)} & \\
+\bottomrule
+\end{tabular}
+\vfill
+\footnotesize $^*$ + 10-12 min del ejercicio Nav2 + \texttt{pixi-ros} (demo del instructor, build lanzado de antemano). Margen restante hasta las 3h: ejercicio de varias distros ROS~2 y reto final del bloque 7, ambos opcionales, más preguntas.
+\end{frame}
+
+\begin{frame}{Recursos}
+\small
+\begin{itemize}
+    \item Pixi: \url{https://pixi.sh/} — \url{https://prefix.dev/}
+    \item RoboStack: \url{https://robostack.github.io/} — \url{https://github.com/RoboStack}
+    \item pixi-ros: \url{https://github.com/ruben-arts/pixi-ros} — Nav2: \url{https://github.com/ros-navigation/navigation2}
+    \item Buildfarm propia: \url{https://github.com/IntelligentRoboticsLabs/ros-rolling} — \url{https://github.com/IntelligentRoboticsLabs/ros-jazzy}
+    \item Paper original: Fischer et al., \emph{``A RoboStack Tutorial''}, IEEE RAM 2021 (arXiv:2104.12910)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \centering
+  \Large Preguntas
+\end{frame}
+
+\end{document}
