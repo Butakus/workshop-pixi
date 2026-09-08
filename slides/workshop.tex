@@ -357,21 +357,25 @@ pixi task list
 
 \begin{frame}[fragile]{Ejercicio 4 — Multi-entorno con features}
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+[dependencies]        # feature "default": ¡ya trae python 3.11!
+python = "3.11.*"
+
 [feature.py310.dependencies]
 python = "3.10.*"
 [feature.py311.dependencies]
 python = "3.11.*"
 
 [environments]
-py310 = ["py310"]
-py311 = ["py311"]
+py310 = { features = ["py310"], no-default-feature = true }
+py311 = { features = ["py311"], no-default-feature = true }
 \end{lstlisting}
 \begin{terminal}
 pixi install
 pixi run -e py310 python --version
 pixi run -e py311 python --version
 \end{terminal}
-\small \textbf{Checkpoint}: dos versiones de Python distintas, mismo repo, sin virtualenvs.
+\small \textbf{Checkpoint}: dos versiones de Python distintas, mismo repo, sin virtualenvs.\\
+\small \textbf{Trampa}: cada entorno de \lstinline|[environments]| incluye la feature \lstinline|default| a menos que uses \lstinline|no-default-feature = true| — si no, \lstinline|python 3.11| (default) choca con \lstinline|python 3.10| (py310) y falla el solve.
 \end{frame}
 
 \begin{frame}{Cierre del bloque}
