@@ -24,6 +24,7 @@ Francisco Martín Rico & Esteve Fernández \\
 
 \date{}
 \setbeamertemplate{date}{}
+\setbeamertemplate{navigation symbols}{} % ocultar iconos de navegación
 
 % defs
 \definecolor{deepblue}{rgb}{0,0,0.5}
@@ -197,7 +198,7 @@ Multi-entorno en un proyecto & \checkmark & parcial & -- & parcial \\
 \end{tabular}
 \vfill
 \begin{center}
-\textit{Pixi resuelve e instala un entorno desde cero \textasciitilde 3$\times$ más rápido que micromamba y $>$10$\times$ más rápido que conda clásico.}
+\textit{Pixi resuelve e instala un entorno desde cero $\sim 3\times$ más rápido que micromamba y $>$10$\times$ más rápido que conda clásico.}
 \end{center}
 \end{frame}
 
@@ -237,21 +238,21 @@ scripts = ["install/setup.sh"]
 
 \begin{frame}[fragile]{Flujo de trabajo típico}
 \begin{terminal}
-pixi init             # crea el workspace (pixi.toml)
-pixi add <paquete>     # añade dependencia, resuelve, instala
-pixi install           # instala desde el lockfile existente
-pixi run <comando>     # ejecuta dentro del entorno, sin "activate"
-pixi shell             # abre un shell interactivo con el entorno activado
-pixi task add / list    # gestiona tasks
+pixi init                # crea el workspace (pixi.toml)
+pixi add <paquete>       # añade dependencia, resuelve, instala
+pixi install             # instala desde el lockfile existente
+pixi run <comando>       # ejecuta dentro del entorno, sin "activate"
+pixi shell               # abre un shell interactivo con el entorno activado
+pixi task add / list     # gestiona tasks
 pixi lock / pixi update  # gestiona el lockfile
-pixi global install     # instala herramientas CLI globales, aisladas
+pixi global install      # instala herramientas CLI globales, aisladas
 \end{terminal}
 \end{frame}
 
 \begin{frame}{Lockfiles: el porqué de la reproducibilidad}
 \begin{itemize}
     \item \lstinline|pixi.lock| fija versión exacta, build hash y \textbf{sha256} de cada paquete (conda y PyPI), \textbf{por cada plataforma declarada}.
-    \item Se actualiza automáticamente con \lstinline|pixi add| / \lstinline|pixi install| / \lstinline|pixi run|.
+    \item Se actualiza automáticamente con \lstinline|pixi add| / \lstinline|pixi install| / \lstinline|pixi update|.
     \item \lstinline|pixi install --locked| $\rightarrow$ falla si el lockfile no está sincronizado (ideal para CI).
     \item \lstinline|pixi install --frozen| $\rightarrow$ instala exactamente lo que dice el lockfile.
 \end{itemize}
@@ -402,7 +403,7 @@ Esto —dos versiones de Python conviviendo en el mismo proyecto— es exactamen
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Canales conda de RoboStack}
+\begin{frame}{Canales conda}
 \centering
 \begin{tabular}{p{4cm}p{7cm}}
 \toprule
@@ -522,7 +523,7 @@ pixi run run_talker   # 3a vez: ¿y ahora?
 \begin{frame}{Ejercicio 4 — Un workspace real: Nav2 con \texttt{pixi-ros}}
 \begin{itemize}
     \item Hasta ahora, un paquete de juguete. ¿Y un workspace real y grande?
-    \item Y de paso, resolvemos lo que dejamos abierto en el bloque anterior: si \texttt{rosdep} no funciona, ¿cómo relleno las dependencias de un \lstinline|package.xml| real sin hacerlo a mano?
+    \item Y de paso, resolvemos lo que dejamos abierto en el bloque anterior: si \texttt{rosdep} no funciona, ¿cómo instalo las dependencias de un \lstinline|package.xml| real sin hacerlo a mano?
 \end{itemize}
 \vfill
 \begin{block}{\texttt{pixi-ros}}
