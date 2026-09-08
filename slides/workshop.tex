@@ -477,7 +477,7 @@ pixi run ros2 run demo_nodes_cpp listener
 
 \begin{frame}[fragile]{Ejercicio 2 — Paquete propio + colcon}
 \begin{terminal}
-pixi add colcon-common-extensions "setuptools<=58.2.0"
+pixi add colcon-common-extensions "setuptools<=58.2.0" "empy==3.3.4"
 mkdir src
 pixi run ros2 pkg create --build-type ament_python \
   --destination-directory src --node-name talker_custom mi_paquete
