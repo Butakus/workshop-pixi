@@ -47,6 +47,24 @@
   }
 }
 
+% --- File listing blocks (pixi.toml, recipe.yaml...) ---
+% Light box for pre-highlighted (pygmentize -f latex) file listings, as
+% opposed to \terminal which is for command-line snippets.
+\RequirePackage{fancyvrb}
+\newtcolorbox{filelisting}{
+  enhanced,
+  colback=white,
+  colframe=tu-blue!40,
+  coltext=black,
+  boxrule=0.4pt,
+  arc=1mm,
+  left=2mm,
+  right=2mm,
+  top=1mm,
+  bottom=1mm,
+  fontupper=\scriptsize\ttfamily,
+}
+
 \newif\ifbeamer@secheader
 \beamer@secheaderfalse
 

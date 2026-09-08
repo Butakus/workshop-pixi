@@ -11,6 +11,10 @@
 \usepackage{graphicx,listings,textcomp}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+% Resaltado de sintaxis para listados de ficheros (pixi.toml, recipe.yaml...),
+% precomputado con `pygmentize -f latex` para no depender de -shell-escape.
+\usepackage{fvextra}
+\input{pygments-style.tex}
 
 \author[Francisco Martín Rico, Esteve Fernández]{%
 \begin{tabular}{cc}
@@ -203,24 +207,26 @@ Multi-entorno en un proyecto & \checkmark & parcial & -- & parcial \\
 \end{frame}
 
 \begin{frame}[fragile]{Estructura de un \texttt{pixi.toml}}
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-[workspace]
-name = "my_ros2_project"
-version = "0.1.0"
-channels = ["robostack-jazzy", "conda-forge"]
-platforms = ["linux-64"]
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k}{[}\PY{k}{workspace}\PY{k}{]}
+\PY{n}{name}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{my\PYZus{}ros2\PYZus{}project}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{version}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{0.1.0}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{channels}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{robostack\PYZhy{}jazzy}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{conda\PYZhy{}forge}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{n}{platforms}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{linux\PYZhy{}64}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
 
-[dependencies]
-ros-jazzy-desktop = "*"
-colcon-common-extensions = "*"
+\PY{k}{[}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{ros\PYZhy{}jazzy\PYZhy{}desktop}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{colcon\PYZhy{}common\PYZhy{}extensions}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
 
-[tasks]
-build = { cmd = "colcon build --symlink-install", inputs = ["src"] }
-sim   = "ros2 run turtlesim turtlesim_node"
+\PY{k}{[}\PY{k}{tasks}\PY{k}{]}
+\PY{n}{build}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{\PYZob{}}\PY{+w}{ }\PY{n}{cmd}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{colcon build \PYZhy{}\PYZhy{}symlink\PYZhy{}install}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{ }\PY{n}{inputs}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{src}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}\PY{+w}{ }\PY{p}{\PYZcb{}}
+\PY{n}{sim}\PY{+w}{   }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{ros2 run turtlesim turtlesim\PYZus{}node}\PY{l+s+s2}{\PYZdq{}}
 
-[activation]
-scripts = ["install/setup.sh"]
-\end{lstlisting}
+\PY{k}{[}\PY{k}{activation}\PY{k}{]}
+\PY{n}{scripts}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{install/setup.sh}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\end{Verbatim}
+\end{filelisting}
 \end{frame}
 
 \begin{frame}{Secciones del manifiesto}
@@ -341,12 +347,14 @@ pixi tree numpy
 \preguntaframe{¿\lstinline|pixi add --pypi requests| y \lstinline|pixi add requests| instalan lo mismo?}
 
 \begin{frame}[fragile]{Ejercicio 3 — Tasks encadenadas y con caché}
-\begin{lstlisting}
-[tasks]
-hello = "python -c \"print('hola workshop')\""
-build = { cmd = "python -m py_compile main.py",
-          depends-on = ["hello"], inputs = ["main.py"] }
-\end{lstlisting}
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k}{[}\PY{k}{tasks}\PY{k}{]}
+\PY{n}{hello}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{python \PYZhy{}c }\PY{l+s+se}{\PYZbs{}\PYZdq{}}\PY{l+s+s2}{print(\PYZsq{}hola workshop\PYZsq{})}\PY{l+s+se}{\PYZbs{}\PYZdq{}}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{build}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{\PYZob{}}\PY{+w}{ }\PY{n}{cmd}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{python \PYZhy{}m py\PYZus{}compile main.py}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}
+\PY{+w}{          }\PY{n}{depends\PYZhy{}on}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{hello}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}\PY{err}{,}\PY{+w}{ }\PY{n}{inputs}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{main.py}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}\PY{+w}{ }\PY{err}{\PYZcb{}}
+\end{Verbatim}
+\end{filelisting}
 \begin{terminal}
 echo "print('soy main.py')" > main.py
 pixi run build
@@ -357,19 +365,21 @@ pixi task list
 \end{frame}
 
 \begin{frame}[fragile]{Ejercicio 4 — Multi-entorno con features}
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-[dependencies]        # feature "default": ¡ya trae python 3.11!
-python = "3.11.*"
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k}{[}\PY{k}{dependencies}\PY{k}{]}\PY{+w}{        }\PY{c+c1}{\PYZsh{} feature \PYZdq{}default\PYZdq{}: ¡ya trae python 3.11!}
+\PY{n}{python}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{3.11.*}\PY{l+s+s2}{\PYZdq{}}
 
-[feature.py310.dependencies]
-python = "3.10.*"
-[feature.py311.dependencies]
-python = "3.11.*"
+\PY{k}{[}\PY{k}{feature}\PY{k}{.}\PY{k}{py310}\PY{k}{.}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{python}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{3.10.*}\PY{l+s+s2}{\PYZdq{}}
+\PY{k}{[}\PY{k}{feature}\PY{k}{.}\PY{k}{py311}\PY{k}{.}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{python}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{3.11.*}\PY{l+s+s2}{\PYZdq{}}
 
-[environments]
-py310 = { features = ["py310"], no-default-feature = true }
-py311 = { features = ["py311"], no-default-feature = true }
-\end{lstlisting}
+\PY{k}{[}\PY{k}{environments}\PY{k}{]}
+\PY{n}{py310}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{\PYZob{}}\PY{+w}{ }\PY{n}{features}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{py310}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}\PY{p}{,}\PY{+w}{ }\PY{n}{no\PYZhy{}default\PYZhy{}feature}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{k+kc}{true}\PY{+w}{ }\PY{p}{\PYZcb{}}
+\PY{n}{py311}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{\PYZob{}}\PY{+w}{ }\PY{n}{features}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{py311}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}\PY{p}{,}\PY{+w}{ }\PY{n}{no\PYZhy{}default\PYZhy{}feature}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{k+kc}{true}\PY{+w}{ }\PY{p}{\PYZcb{}}
+\end{Verbatim}
+\end{filelisting}
 \begin{terminal}
 pixi install
 pixi run -e py310 python --version
@@ -492,11 +502,13 @@ pixi run colcon build --symlink-install
 \end{frame}
 
 \begin{frame}[fragile]{El overlay, automatizado}
-\begin{lstlisting}
-# añadir a pixi.toml
-[activation]
-scripts = ["install/setup.sh"]
-\end{lstlisting}
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{c+c1}{\PYZsh{} añadir a pixi.toml}
+\PY{k}{[}\PY{k}{activation}\PY{k}{]}
+\PY{n}{scripts}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{install/setup.sh}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\end{Verbatim}
+\end{filelisting}
 \begin{terminal}
 pixi shell
 echo $AMENT_PREFIX_PATH   # install/ del workspace, primero
@@ -510,12 +522,14 @@ exit
 \preguntaframe{¿Qué pasaría si borro \texttt{install/} pero dejo el \texttt{[activation]} en el \texttt{pixi.toml}?}
 
 \begin{frame}[fragile]{Ejercicio 3 — Tasks con caché encadenadas}
-\begin{lstlisting}
-[tasks]
-build      = { cmd = "colcon build --symlink-install", inputs = ["src"] }
-run_talker = { cmd = "ros2 run mi_paquete talker_custom",
-               depends-on = ["build"] }
-\end{lstlisting}
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k}{[}\PY{k}{tasks}\PY{k}{]}
+\PY{n}{build}\PY{+w}{      }\PY{o}{=}\PY{+w}{ }\PY{p}{\PYZob{}}\PY{+w}{ }\PY{n}{cmd}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{colcon build \PYZhy{}\PYZhy{}symlink\PYZhy{}install}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{ }\PY{n}{inputs}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{src}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}\PY{+w}{ }\PY{p}{\PYZcb{}}
+\PY{n}{run\PYZus{}talker}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{\PYZob{}}\PY{+w}{ }\PY{n}{cmd}\PY{+w}{ }\PY{p}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{ros2 run mi\PYZus{}paquete talker\PYZus{}custom}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}
+\PY{+w}{               }\PY{n}{depends\PYZhy{}on}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{build}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}\PY{+w}{ }\PY{err}{\PYZcb{}}
+\end{Verbatim}
+\end{filelisting}
 \begin{terminal}
 pixi run run_talker
 pixi run run_talker   # 2a vez: ¿recompila?
@@ -606,21 +620,23 @@ Levanta \textbf{Gazebo Sim} (\lstinline|gz sim|) con el robot spawneado, toda la
 
 \begin{frame}[fragile]{Ejercicio 5.5 (opcional) — Varias distros ROS~2 a la vez (1/2)}
 Mismo patrón que el ejercicio 3.4 (Python), pero cada distro RoboStack vive en su propio canal: no se pueden mezclar \lstinline|robostack-jazzy| y \lstinline|robostack-humble| en la misma resolución.
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-[feature.jazzy]
-channels = ["robostack-jazzy", "conda-forge"]
-[feature.jazzy.dependencies]
-ros-jazzy-desktop = "*"
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k}{[}\PY{k}{feature}\PY{k}{.}\PY{k}{jazzy}\PY{k}{]}
+\PY{n}{channels}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{robostack\PYZhy{}jazzy}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{conda\PYZhy{}forge}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{k}{[}\PY{k}{feature}\PY{k}{.}\PY{k}{jazzy}\PY{k}{.}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{ros\PYZhy{}jazzy\PYZhy{}desktop}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
 
-[feature.humble]
-channels = ["robostack-humble", "conda-forge"]
-[feature.humble.dependencies]
-ros-humble-desktop = "*"
+\PY{k}{[}\PY{k}{feature}\PY{k}{.}\PY{k}{humble}\PY{k}{]}
+\PY{n}{channels}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{robostack\PYZhy{}humble}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{conda\PYZhy{}forge}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{k}{[}\PY{k}{feature}\PY{k}{.}\PY{k}{humble}\PY{k}{.}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{ros\PYZhy{}humble\PYZhy{}desktop}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
 
-[environments]
-jazzy  = ["jazzy"]
-humble = ["humble"]
-\end{lstlisting}
+\PY{k}{[}\PY{k}{environments}\PY{k}{]}
+\PY{n}{jazzy}\PY{+w}{  }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{jazzy}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{n}{humble}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{humble}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\end{Verbatim}
+\end{filelisting}
 \end{frame}
 
 \begin{frame}[fragile]{Ejercicio 5.5 (opcional) — Varias distros ROS~2 a la vez (2/2)}
@@ -714,37 +730,41 @@ pixi init .
 pixi add rattler-build rattler-index
 mkdir -p src recipe
 \end{terminal}
-\begin{lstlisting}
-# src/pyproject.toml
-[project]
-name = "hola-pichi"
-version = "1.0.0"
-[project.scripts]
-hola-pichi = "hola_pichi:main"
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-\end{lstlisting}
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{c+c1}{\PYZsh{} src/pyproject.toml}
+\PY{k}{[}\PY{k}{project}\PY{k}{]}
+\PY{n}{name}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{hola\PYZhy{}pichi}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{version}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{1.0.0}\PY{l+s+s2}{\PYZdq{}}
+\PY{k}{[}\PY{k}{project}\PY{k}{.}\PY{k}{scripts}\PY{k}{]}
+\PY{n}{hola\PYZhy{}pichi}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{hola\PYZus{}pichi:main}\PY{l+s+s2}{\PYZdq{}}
+\PY{k}{[}\PY{k}{build\PYZhy{}system}\PY{k}{]}
+\PY{n}{requires}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{setuptools}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{n}{build\PYZhy{}backend}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{setuptools.build\PYZus{}meta}\PY{l+s+s2}{\PYZdq{}}
+\end{Verbatim}
+\end{filelisting}
 \end{frame}
 
 \begin{frame}[fragile]{Fase A — La receta \texttt{rattler-build} (2/3)}
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-# recipe/recipe.yaml
-package:
-  name: hola-pichi
-  version: "1.0.0"
-source:
-  path: ../src
-build:
-  number: 0
-  noarch: python
-  script: python -m pip install . --no-deps --no-build-isolation -vv
-requirements:
-  host: [python, pip]
-  run: [python]
-tests:
-  - script: [hola-pichi]
-\end{lstlisting}
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{c+c1}{\PYZsh{} recipe/recipe.yaml}
+\PY{n+nt}{package}\PY{p}{:}
+\PY{+w}{  }\PY{n+nt}{name}\PY{p}{:}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{hola\PYZhy{}pichi}
+\PY{+w}{  }\PY{n+nt}{version}\PY{p}{:}\PY{+w}{ }\PY{l+s}{\PYZdq{}}\PY{l+s}{1.0.0}\PY{l+s}{\PYZdq{}}
+\PY{n+nt}{source}\PY{p}{:}
+\PY{+w}{  }\PY{n+nt}{path}\PY{p}{:}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{../src}
+\PY{n+nt}{build}\PY{p}{:}
+\PY{+w}{  }\PY{n+nt}{number}\PY{p}{:}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{0}
+\PY{+w}{  }\PY{n+nt}{noarch}\PY{p}{:}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{python}
+\PY{+w}{  }\PY{n+nt}{script}\PY{p}{:}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{python}\PY{l+lScalar+lScalarPlain}{ }\PY{l+lScalar+lScalarPlain}{\PYZhy{}m}\PY{l+lScalar+lScalarPlain}{ }\PY{l+lScalar+lScalarPlain}{pip}\PY{l+lScalar+lScalarPlain}{ }\PY{l+lScalar+lScalarPlain}{install}\PY{l+lScalar+lScalarPlain}{ }\PY{l+lScalar+lScalarPlain}{.}\PY{l+lScalar+lScalarPlain}{ }\PY{l+lScalar+lScalarPlain}{\PYZhy{}\PYZhy{}no\PYZhy{}deps}\PY{l+lScalar+lScalarPlain}{ }\PY{l+lScalar+lScalarPlain}{\PYZhy{}\PYZhy{}no\PYZhy{}build\PYZhy{}isolation}\PY{l+lScalar+lScalarPlain}{ }\PY{l+lScalar+lScalarPlain}{\PYZhy{}vv}
+\PY{n+nt}{requirements}\PY{p}{:}
+\PY{+w}{  }\PY{n+nt}{host}\PY{p}{:}\PY{+w}{ }\PY{p+pIndicator}{[}\PY{n+nv}{python}\PY{p+pIndicator}{,}\PY{+w}{ }\PY{n+nv}{pip}\PY{p+pIndicator}{]}
+\PY{+w}{  }\PY{n+nt}{run}\PY{p}{:}\PY{+w}{ }\PY{p+pIndicator}{[}\PY{n+nv}{python}\PY{p+pIndicator}{]}
+\PY{n+nt}{tests}\PY{p}{:}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{n+nt}{script}\PY{p}{:}\PY{+w}{ }\PY{p+pIndicator}{[}\PY{n+nv}{hola\PYZhy{}pichi}\PY{p+pIndicator}{]}
+\end{Verbatim}
+\end{filelisting}
 \end{frame}
 
 \begin{frame}[fragile]{Fase A — Construir el paquete (3/3)}
@@ -776,16 +796,18 @@ Plan free: 1 canal privado disponible. Usamos uno público hoy por simplicidad �
 \end{frame}
 
 \begin{frame}[fragile]{Fase C — Instalar desde un \texttt{pixi.toml} propio}
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-# pixi.toml
-[workspace]
-name = "consumidor_ws"
-channels = ["https://prefix.dev/workshop-pichi-<nombre>", "conda-forge"]
-platforms = ["linux-64"]
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{c+c1}{\PYZsh{} pixi.toml}
+\PY{k}{[}\PY{k}{workspace}\PY{k}{]}
+\PY{n}{name}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{consumidor\PYZus{}ws}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{channels}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{https://prefix.dev/workshop\PYZhy{}pichi\PYZhy{}\PYZlt{}nombre\PYZgt{}}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{conda\PYZhy{}forge}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{n}{platforms}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{linux\PYZhy{}64}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
 
-[dependencies]
-hola-pichi = "*"
-\end{lstlisting}
+\PY{k}{[}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{hola\PYZhy{}pichi}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\end{Verbatim}
+\end{filelisting}
 \begin{terminal}
 pixi install
 pixi run hola-pichi
@@ -795,20 +817,22 @@ pixi run hola-pichi
 \end{frame}
 
 \begin{frame}[fragile]{Fase D — Integrarlo en un workspace ROS~2}
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-[workspace]
-channels = ["https://prefix.dev/workshop-pichi-<nombre>",
-            "robostack-jazzy", "conda-forge"]
-platforms = ["linux-64"]
-[dependencies]
-ros-jazzy-ros-base = "*"
-colcon-common-extensions = "*"
-hola-pichi = "*"
-[tasks]
-build = "colcon build --symlink-install"
-[activation]
-scripts = ["install/setup.sh"]
-\end{lstlisting}
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k}{[}\PY{k}{workspace}\PY{k}{]}
+\PY{n}{channels}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{https://prefix.dev/workshop\PYZhy{}pichi\PYZhy{}\PYZlt{}nombre\PYZgt{}}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}
+\PY{+w}{            }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{robostack\PYZhy{}jazzy}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{conda\PYZhy{}forge}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{n}{platforms}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{linux\PYZhy{}64}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\PY{k}{[}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{ros\PYZhy{}jazzy\PYZhy{}ros\PYZhy{}base}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{colcon\PYZhy{}common\PYZhy{}extensions}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{hola\PYZhy{}pichi}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\PY{k}{[}\PY{k}{tasks}\PY{k}{]}
+\PY{n}{build}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{colcon build \PYZhy{}\PYZhy{}symlink\PYZhy{}install}\PY{l+s+s2}{\PYZdq{}}
+\PY{k}{[}\PY{k}{activation}\PY{k}{]}
+\PY{n}{scripts}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{install/setup.sh}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+\end{Verbatim}
+\end{filelisting}
 \begin{terminal}
 pixi install && pixi shell
 hola-pichi
@@ -852,26 +876,28 @@ Reutilizan el 100\% del motor (Pixi + Vinca + rattler-build + CI + patches) que 
 \end{frame}
 
 \begin{frame}[fragile]{\texttt{plansys2\_subset/vinca.yaml}}
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-ros_distro: rolling
-conda_index:
-  - robostack.yaml
-  - packages-ignore.yaml
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nt}{ros\PYZus{}distro}\PY{p}{:}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{rolling}
+\PY{n+nt}{conda\PYZus{}index}\PY{p}{:}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{robostack.yaml}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{packages\PYZhy{}ignore.yaml}
 
-# Los paquetes ya en robostack-rolling se dan por existentes
-skip_existing:
-  - https://prefix.dev/robostack-rolling/
+\PY{c+c1}{\PYZsh{} Los paquetes ya en robostack\PYZhy{}rolling se dan por existentes}
+\PY{n+nt}{skip\PYZus{}existing}\PY{p}{:}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{https://prefix.dev/robostack\PYZhy{}rolling/}
 
-# Solo estos paquetes (sus dependencias se resuelven solas)
-packages_select_by_deps:
-  - plansys2_bringup
-  - plansys2_core
-  - plansys2_domain_expert
-  - plansys2_executor
-  # ... resto de paquetes plansys2_*
-  - popf
-  - rclcpp_cascade_lifecycle
-\end{lstlisting}
+\PY{c+c1}{\PYZsh{} Solo estos paquetes (sus dependencias se resuelven solas)}
+\PY{n+nt}{packages\PYZus{}select\PYZus{}by\PYZus{}deps}\PY{p}{:}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{plansys2\PYZus{}bringup}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{plansys2\PYZus{}core}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{plansys2\PYZus{}domain\PYZus{}expert}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{plansys2\PYZus{}executor}
+\PY{+w}{  }\PY{c+c1}{\PYZsh{} ... resto de paquetes plansys2\PYZus{}*}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{popf}
+\PY{+w}{  }\PY{p+pIndicator}{\PYZhy{}}\PY{+w}{ }\PY{l+lScalar+lScalarPlain}{rclcpp\PYZus{}cascade\PYZus{}lifecycle}
+\end{Verbatim}
+\end{filelisting}
 \end{frame}
 
 \begin{frame}[fragile]{El atajo, y el flujo manual detrás}
@@ -892,23 +918,25 @@ pixi run rattler-build upload prefix --channel irl-rolling ...
 \end{frame}
 
 \begin{frame}[fragile]{Cómo lo consume alguien}
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
-[workspace]
-name = "plansys2_ws"
-channels = [
-  "file:///.../ros-rolling/output",       # local, para iterar
-  "https://prefix.dev/irl-rolling",        # canal propio
-  "https://prefix.dev/robostack-rolling",  # ROS 2 oficial
-  "https://prefix.dev/conda-forge",
-]
-platforms = ["linux-64"]
+\begin{filelisting}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k}{[}\PY{k}{workspace}\PY{k}{]}
+\PY{n}{name}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{plansys2\PYZus{}ws}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{channels}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}
+\PY{+w}{  }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{file:///.../ros\PYZhy{}rolling/output}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{       }\PY{c+c1}{\PYZsh{} local, para iterar}
+\PY{+w}{  }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{https://prefix.dev/irl\PYZhy{}rolling}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{        }\PY{c+c1}{\PYZsh{} canal propio}
+\PY{+w}{  }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{https://prefix.dev/robostack\PYZhy{}rolling}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}\PY{+w}{  }\PY{c+c1}{\PYZsh{} ROS 2 oficial}
+\PY{+w}{  }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{https://prefix.dev/conda\PYZhy{}forge}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,}
+\PY{p}{]}
+\PY{n}{platforms}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{linux\PYZhy{}64}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
 
-[dependencies]
-ros-rolling-ros-base = "*"
-ros-rolling-plansys2-bringup = "*"
-ros-rolling-plansys2-core = "*"
-ros-rolling-popf = "*"
-\end{lstlisting}
+\PY{k}{[}\PY{k}{dependencies}\PY{k}{]}
+\PY{n}{ros\PYZhy{}rolling\PYZhy{}ros\PYZhy{}base}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{ros\PYZhy{}rolling\PYZhy{}plansys2\PYZhy{}bringup}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{ros\PYZhy{}rolling\PYZhy{}plansys2\PYZhy{}core}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\PY{n}{ros\PYZhy{}rolling\PYZhy{}popf}\PY{+w}{ }\PY{o}{=}\PY{+w}{ }\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{*}\PY{l+s+s2}{\PYZdq{}}
+\end{Verbatim}
+\end{filelisting}
 \vfill
 \small El orden importa: local $\rightarrow$ canal propio $\rightarrow$ RoboStack oficial $\rightarrow$ conda-forge.
 \end{frame}
