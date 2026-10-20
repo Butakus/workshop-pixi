@@ -124,15 +124,14 @@ Juan Sebastián Cely & Francisco Miguel Moreno \\
 \textbf{Duración} & \textbf{Bloque} & \textbf{Formato} \\
 \midrule
 10 min & Bienvenida y comprobación de la preparación & juntos \\
-15 min & Robótica para todos & hablamos \\
+10 min & Robótica para todos & hablamos \\
 25 min & Pixi en 25 minutos & hablamos \\
-45 min & \textbf{Ejercicio 1:} tu primer workspace ROS~2 & escribís \\
+40 min & \textbf{Ejercicio 1:} tu primer workspace ROS~2 & escribís \\
 15 min & Construir paquetes ROS con Pixi & hablamos \\
 35 min & \textbf{Ejercicio 2:} construir y publicar paquetes & escribís \\
 10 min & Colaboración, CI/CD y Docker & hablamos \\
-25 min & \textbf{Ejercicio 3:} listo para tu equipo & escribís \\
-\midrule
-extra & Ejercicio 4 (opcional): Nav2 con \texttt{pixi-ros} & demo \\
+20 min & \textbf{Ejercicio 3:} listo para tu equipo & escribís \\
+20 min & \textbf{Ejercicio 4:} compilar un workspace real & escribís \\
 \bottomrule
 \end{tabular}
 \referencia{Todo el material: \texttt{ejercicios/} (instrucciones paso a paso) y \texttt{soluciones/} (workspaces terminados) en el repositorio del taller.}
@@ -495,16 +494,17 @@ pixi list --platform jetson        # lo que tendría la Jetson
 
 \begin{frame}[fragile]{Paquetes virtuales y CUDA}
 \begin{columns}[T]
-\column{0.42\linewidth}
+\column{0.34\linewidth}
 \begin{terminal}
 $ pixi info
-Virtual packages: __unix=0=0
-  : __linux=6.8.0=0
-  : __glibc=2.39=0
-  : __cuda=12.4=0
-  : __archspec=1=x86_64
+Virtual packages:
+  __unix=0=0
+  __linux=6.8.0=0
+  __glibc=2.39=0
+  __cuda=12.4=0
+  __archspec=1=x86_64
 \end{terminal}
-\column{0.55\linewidth}
+\column{0.63\linewidth}
 %%CODE toml
 [dependencies]
 # GPU donde hay CUDA, CPU en el resto
@@ -531,7 +531,7 @@ pixi run ros2 run turtlesim turtlesim_node
 \vfill
 \end{frame}
 
-\practicaframe{Ejercicio 1: tu primer workspace ROS~2}{45 minutos · \texttt{cd ejercicios/01-workspace-ros}}
+\practicaframe{Ejercicio 1: tu primer workspace ROS~2}{40 minutos · \texttt{cd ejercicios/01-workspace-ros}}
 
 \begin{frame}{Ejercicio 1: tu primer workspace ROS~2}
 \begin{enumerate}
@@ -614,8 +614,8 @@ preview = ["pixi-build"]
 [workspace.dependencies]
 pixi-build-ros = ">=0.7.5"
 
-[dependencies]
-ros-lyrical-turtle-dancer = { path = "src/turtle_dancer" }
+[dependencies.ros-lyrical-turtle-dancer]
+path = "src/turtle_dancer"
 %%END
 \column{0.48\linewidth}
 \small \texttt{src/turtle\_dancer/pixi.toml} (paquete)
@@ -742,7 +742,7 @@ path = "src/turtle_dancer"
 
 # Desde git
 [dependencies.brain]
-git = "https://github.com/user/brain.git"
+git = "https://github.com/user/brain"
 branch = "main"
 %%END
 \end{columns}
@@ -828,7 +828,8 @@ CMD ["ros2", "run", "demo_nodes_cpp", "talker"]
 \column{0.45\linewidth}
 \small En tu portátil
 \begin{terminal}
-pixi-pack --platform linux-aarch64 \
+pixi-pack \
+  --platform linux-aarch64 \
   pixi.toml
 \end{terminal}
 \column{0.5\linewidth}
@@ -847,7 +848,7 @@ ros2 run demo_nodes_cpp talker
 \end{itemize}
 \end{frame}
 
-\practicaframe{Ejercicio 3: listo para tu equipo}{25 minutos · \texttt{cd ejercicios/03-colaboracion}}
+\practicaframe{Ejercicio 3: listo para tu equipo}{20 minutos · \texttt{cd ejercicios/03-colaboracion}}
 
 \begin{frame}{Ejercicio 3: listo para tu equipo}
 \begin{enumerate}
@@ -860,52 +861,98 @@ ros2 run demo_nodes_cpp talker
 \small Instrucciones: \texttt{ejercicios/03-colaboracion/README.md}
 \end{frame}
 
+
 %=================================================
-\seccion[Nav2]{Un workspace real}{Ejercicio 4 (opcional): Nav2 con \texttt{pixi-ros}, sin traducir dependencias a mano.}
+\seccion[Workspace real]{Compilar un workspace real}{Repositorios de otros, sin \texttt{rosdep}, y un Kobuki en una casa.}
 %=================================================
 
-\begin{frame}{Ejercicio 4 (opcional): un workspace real}
+\begin{frame}{La vida real: un \texttt{src/} con repositorios de otros}
 \begin{itemize}
-    \item Hasta ahora, paquetes de juguete. ¿Y un workspace grande que hoy compiláis con \texttt{rosdep} y \texttt{colcon}?
-    \item \texttt{rosdep} no sirve dentro de Pixi: llama a \texttt{apt}/\texttt{pip} del sistema.
+    \item Lo de siempre: clonar, \lstinline|rosdep install|, \lstinline|colcon build|, \lstinline|source|.
+    \item \texttt{rosdep} no sirve dentro de Pixi: llama a \texttt{apt} y \texttt{pip} del sistema, con \texttt{sudo} y sin fijar versiones.
+    \item Lo que hace \texttt{rosdep} es traducir cada dependencia del \lstinline|package.xml| a un paquete. Con RoboStack la traducción es directa:
 \end{itemize}
 \vfill
-\begin{block}{\texttt{pixi-ros}}
-Escanea los \lstinline|package.xml| del workspace y genera el \lstinline|pixi.toml| con las dependencias ya traducidas a paquetes de RoboStack y conda-forge, y tasks \texttt{build}/\texttt{test} con colcon. El \lstinline|rosdep install| moderno, pero reproducible.
-\end{block}
+\centering
+\scriptsize
+\begin{tabular}{lll}
+\toprule
+\textbf{En el \texttt{package.xml}} & \textbf{Con \texttt{rosdep}} & \textbf{Con Pixi} \\
+\midrule
+\texttt{ros\_gz\_sim} & \texttt{apt install ros-lyrical-ros-gz-sim} & \texttt{pixi add ros-lyrical-ros-gz-sim} \\
+\texttt{xacro} & \texttt{apt install ros-lyrical-xacro} & \texttt{pixi add ros-lyrical-xacro} \\
+\bottomrule
+\end{tabular}
 \vfill
-\begin{alertblock}{Aviso de timing}
-Nav2 son más de 80 paquetes C++. El build se lanza con antelación y aquí enseñamos el resultado en vivo.
-\end{alertblock}
+\raggedright\small Y queda escrito en el \lstinline|pixi.toml| y fijado en el \lstinline|pixi.lock|. Para workspaces grandes, \texttt{pixi-ros} hace la traducción por ti.
 \end{frame}
 
-\begin{frame}[fragile]{Nav2 en siete comandos}
+\begin{frame}[fragile]{Los repositorios, en un fichero: \texttt{workspace.repos}}
+%%CODE yaml
+repositories:
+  easynav_playgrounds:
+    type: git
+    url: https://github.com/EasyNavigation/easynav_playgrounds.git
+    version: pichi-workshop      # solo el Kobuki y la casa
+  teleop_twist_keyboard:
+    type: git
+    url: https://github.com/ros2/teleop_twist_keyboard.git
+    version: rolling
+%%END
 \begin{terminal}
-pixi global install pixi-ros
-mkdir -p nav2_ws/src && cd nav2_ws
-git clone -b jazzy https://github.com/ros-navigation/navigation2.git src/navigation2
-pixi-ros init --distro jazzy --platform linux-64
-pixi add gcc_linux-64=13.3.0 gxx_linux-64=13.3.0 libboost=1.88.0 libboost-devel=1.88.0 ros-jazzy-rviz2
-pixi run build
-pixi run ros2 launch nav2_bringup tb3_simulation_launch.py
+vcs import --input workspace.repos src     # vcstool viene en ros-dev-tools
 \end{terminal}
 \vfill
-\begin{itemize}
-    \item GCC y Boost se fijan a las versiones de Ubuntu 24.04 con las que compila Nav2 Jazzy; RViz2 no es dependencia de build.
-    \item En RViz2: \textbf{2D Pose Estimate} $\rightarrow$ \textbf{Nav2 Goal} $\rightarrow$ el robot navega solo. Gazebo, RViz2 y Nav2 en un entorno Pixi, sin \texttt{sudo}, sin \texttt{apt}, sin Docker.
-\end{itemize}
+\small El formato estándar de ROS para describir un workspace: va a git junto al \lstinline|pixi.toml| y el \lstinline|pixi.lock|.
 \end{frame}
 
-\begin{frame}{Con vuestro propio workspace}
+\begin{frame}[fragile]{El entorno y las tasks: \texttt{pixi.toml}}
+\begin{columns}[T]
+\column{0.4\linewidth}
+%%CODE toml
+[dependencies]
+ros-lyrical-ros-base = ">=0.13"
+ros-dev-tools = ">=1.0"
+ros-lyrical-ros-gz-sim = "*"
+ros-lyrical-ros-gz-bridge = "*"
+ros-lyrical-gz-sim-vendor = "*"
+ros-lyrical-xacro = "*"
+# ...
+
+[target.unix.activation]
+scripts = ["install/setup.sh"]
+%%END
+\column{0.57\linewidth}
+%%CODE toml
+[tasks.importar]
+cmd = "mkdir -p src && vcs import --input workspace.repos src"
+
+[tasks.build]
+cmd = "colcon build"
+depends-on = ["importar"]
+
+[tasks.sim]
+cmd = "ros2 launch easynav_playground_kobuki_worlds gazebo_sim.launch.yaml"
+depends-on = ["build"]
+%%END
+\end{columns}
+\vfill
+\centering \lstinline|git clone| · \lstinline|cd| · \lstinline|pixi run sim|: clona, compila y lanza Gazebo con el Kobuki.
+\end{frame}
+
+\practicaframe{Ejercicio 4: compilar un workspace real}{20 minutos · \texttt{cd ejercicios/04-workspace-real}}
+
+\begin{frame}{Ejercicio 4: compilar un workspace real}
 \begin{enumerate}
-    \item \lstinline|pixi-ros init --distro <distro>| en la raíz: revisad los \texttt{NOT FOUND}.
-    \item \lstinline|pixi run build| con colcon, como en el Ejercicio 1.
-    \item Paquete a paquete (empezando por las hojas), un \lstinline|pixi.toml| de dos líneas y una dependencia \texttt{path}, como en el Ejercicio 2.
-    \item \lstinline|publish = true| y \lstinline|pixi publish| desde la CI: vuestra ``buildfarm''.
-    \item \lstinline|setup-pixi| en la CI y \lstinline|pixi-pack| o Docker para el robot, como en el Ejercicio 3.
+    \item Workspace con \texttt{robostack-lyrical}, \lstinline|ros-lyrical-ros-base| y \lstinline|ros-dev-tools|.
+    \item \lstinline|workspace.repos| con \texttt{easynav\_playgrounds} (rama \texttt{pichi-workshop}) y \texttt{teleop\_twist\_keyboard}; \lstinline|vcs import|.
+    \item Leer los \lstinline|package.xml| y añadir sus dependencias con \lstinline|pixi add|: vuestro \lstinline|rosdep install|.
+    \item \lstinline|colcon build| y la activación del overlay, como en el Ejercicio 1.
+    \item \lstinline|pixi run sim|: Gazebo con el Kobuki en la casa.
+    \item \lstinline|pixi run teleop| en otra terminal: pasead el Kobuki.
 \end{enumerate}
 \vfill
-\small Si una dependencia del \lstinline|package.xml| no está en RoboStack con ese nombre: \texttt{extra-package-mappings} en la configuración de \texttt{pixi-build-ros}.
+\small Instrucciones: \texttt{ejercicios/04-workspace-real/README.md} · Gazebo necesita OpenGL: en VMs o WSL2, \lstinline|LIBGL_ALWAYS_SOFTWARE=1|.
 \end{frame}
 
 %=================================================
@@ -921,12 +968,24 @@ pixi run ros2 launch nav2_bringup tb3_simulation_launch.py
 \end{itemize}
 \end{frame}
 
+\begin{frame}{Con vuestro propio workspace}
+\begin{enumerate}
+    \item \lstinline|pixi-ros init --distro <distro>| en la raíz: revisad los \texttt{NOT FOUND}.
+    \item \lstinline|pixi run build| con colcon, como en el Ejercicio 1.
+    \item Paquete a paquete (empezando por las hojas), un \lstinline|pixi.toml| de dos líneas y una dependencia \texttt{path}, como en el Ejercicio 2.
+    \item \lstinline|publish = true| y \lstinline|pixi publish| desde la CI: vuestra ``buildfarm''.
+    \item \lstinline|setup-pixi| en la CI y \lstinline|pixi-pack| o Docker para el robot, como en el Ejercicio 3.
+\end{enumerate}
+\vfill
+\small Si una dependencia del \lstinline|package.xml| no está en RoboStack con ese nombre: \texttt{extra-package-mappings} en la configuración de \texttt{pixi-build-ros}.
+\end{frame}
+
 \begin{frame}{Recursos}
 \small
 \begin{itemize}
     \item Pixi: \url{https://pixi.prefix.dev} — ROS: \url{https://pixi.prefix.dev/latest/build/ros/}
     \item RoboStack: \url{https://robostack.github.io/} — \url{https://github.com/RoboStack}
-    \item pixi-ros: \url{https://github.com/ruben-arts/pixi-ros} — Nav2: \url{https://github.com/ros-navigation/navigation2}
+    \item pixi-ros: \url{https://github.com/ruben-arts/pixi-ros}
     \item Discord de Pixi, canal \texttt{\#pixi}: \url{https://discord.gg/kKV8ZxyzY4}
     \item Paper original: Fischer et al., \emph{``A RoboStack Tutorial''}, IEEE RAM 2021 (arXiv:2104.12910)
 \end{itemize}

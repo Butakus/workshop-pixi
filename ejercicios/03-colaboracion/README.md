@@ -1,6 +1,6 @@
 # Ejercicio 3: listo para tu equipo
 
-> **25 minutos, práctica** · **Trabaja en:** `ejercicios/03-colaboracion/` · **Solución:** [`soluciones/03-colaboracion/`](../../soluciones/03-colaboracion/)
+> **20 minutos, práctica** · **Trabaja en:** `ejercicios/03-colaboracion/` · **Solución:** [`soluciones/03-colaboracion/`](../../soluciones/03-colaboracion/)
 >
 > **Objetivo:** llevar el workspace a tu equipo: una CI en verde, una imagen Docker y un archivo que se desempaqueta y se ejecuta sin Pixi.
 
@@ -223,4 +223,4 @@ Cierra esta terminal al terminar para que el entorno desempaquetado no se cuele 
 
 ---
 
-Eso es todo el taller. Si quieres seguir con un workspace grande de verdad, ve al [Ejercicio 4 (opcional): Nav2 con `pixi-ros`](../04-nav2-pixi-ros/).
+Siguiente: [Ejercicio 4: compilar un workspace real](../04-workspace-real/).

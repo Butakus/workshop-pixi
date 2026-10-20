@@ -1,0 +1,58 @@
+# Solución del Ejercicio 4: compilar un workspace real.
+#
+# Dos repositorios de terceros, clonados con vcstool desde workspace.repos y
+# compilados con colcon dentro del entorno de Pixi:
+#
+#     pixi run sim       # Gazebo con un Kobuki en una casa (clona y compila antes)
+#     pixi run teleop    # en otra terminal: mueve el Kobuki con el teclado
+#
+# Lo que harías con rosdep + apt está en [dependencies]: las dependencias de
+# ejecución de los package.xml, traducidas a paquetes de RoboStack.
+
+[workspace]
+name = "kobuki-ws"
+channels = ["https://prefix.dev/robostack-lyrical", "conda-forge"]
+platforms = ["linux-64", { platform = "osx-arm64", macos = "14.0" }, "win-64"]
+version = "0.1.0"
+
+[dependencies]
+ros-lyrical-ros-base = ">=0.13"
+# colcon, vcstool, CMake y compiladores
+ros-dev-tools = ">=1.0"
+# Lo que piden los package.xml de easynav_playground_kobuki_*
+ros-lyrical-gz-sim-vendor = "*"
+ros-lyrical-ros-gz-sim = "*"
+ros-lyrical-ros-gz-bridge = "*"
+ros-lyrical-xacro = "*"
+ros-lyrical-robot-state-publisher = "*"
+ros-lyrical-launch-yaml = "*"
+
+[tasks.importar]
+cmd = "mkdir -p src && vcs import --input workspace.repos src"
+inputs = ["workspace.repos"]
+outputs = ["src/easynav_playgrounds/README.md", "src/teleop_twist_keyboard/package.xml"]
+description = "Clona en src/ los repositorios de workspace.repos"
+
+[tasks.build]
+cmd = "colcon build"
+depends-on = ["importar"]
+description = "Compila el workspace con colcon"
+
+[tasks.sim]
+cmd = "ros2 launch easynav_playground_kobuki_worlds gazebo_sim.launch.yaml"
+depends-on = ["build"]
+description = "Gazebo con el Kobuki en la casa"
+
+[tasks.teleop]
+cmd = "ros2 run teleop_twist_keyboard teleop_twist_keyboard"
+description = "Mueve el Kobuki con el teclado (en otra terminal)"
+
+[tasks.test]
+cmd = "ros2 pkg executables teleop_twist_keyboard"
+description = "Comprueba que el overlay está cargado: lo que ejecuta la CI"
+
+[target.unix.activation]
+scripts = ["install/setup.sh"]
+
+[target.win-64.activation]
+scripts = ["install/setup.bat"]

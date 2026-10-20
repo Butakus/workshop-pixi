@@ -9,7 +9,7 @@ Las instrucciones paso a paso están en el `README.md` de cada carpeta, con las 
 | [`01-workspace-ros/`](01-workspace-ros/) | Un workspace vacío con nodos C++ y PyTorch ya escritos | ROS 2 funcionando, tu nodo compilado con colcon, dos distros (Lyrical y Jazzy) a la vez, y un nodo PyTorch resuelto para una GPU y una Jetson |
 | [`02-paquetes-ros/`](02-paquetes-ros/) | Ese workspace, recortado a Lyrical, con colcon compilando | Pixi construyendo el paquete C++ y uno Python desde su `package.xml`, publicados como paquetes conda e instalados desde otro workspace |
 | [`03-colaboracion/`](03-colaboracion/) | Un workspace multiplataforma con los nodos `talker`/`listener` ya construidos | CI en verde, una imagen Docker y un entorno empaquetado que se ejecuta sin Pixi |
-| [`04-nav2-pixi-ros/`](04-nav2-pixi-ros/) *(opcional)* | Nada: clonas Nav2 | Nav2 entero compilado con `pixi-ros`, simulación en Gazebo y navegación en RViz2 |
+| [`04-workspace-real/`](04-workspace-real/) | Nada: clonas dos repositorios de terceros | Un workspace real compilado con colcon dentro de Pixi, sin `rosdep`, y un Kobuki en una casa en Gazebo movido con el teclado |
 
 Las versiones terminadas están en [`../soluciones/`](../soluciones/).
 Mirar está permitido, pero escribe tú los comandos: ahí está el aprendizaje.

@@ -12,6 +12,10 @@ __pycache__/
 *.py[cod]
 files.txt
 
+# Repositorios que clona `vcs import` en el Ejercicio 4
+ejercicios/04-workspace-real/src/
+soluciones/04-workspace-real/src/
+
 # pixi-pack / pixi-unpack (Ejercicio 3)
 environment.tar
 environment.sh

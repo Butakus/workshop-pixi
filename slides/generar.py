@@ -33,6 +33,11 @@ def colorize(match: re.Match) -> str:
         text=True,
         check=True,
     ).stdout
+    # fvextra: partir las líneas largas en vez de dejar que se salgan del cuadro.
+    latex = latex.replace(
+        "\\begin{Verbatim}[commandchars=\\\\\\{\\}]",
+        "\\begin{Verbatim}[commandchars=\\\\\\{\\},breaklines,breakanywhere]",
+    )
     font = f"\\{size}\n" if size else ""
     return "\\begin{filelisting}\n" + font + latex.rstrip("\n") + "\n\\end{filelisting}"
 

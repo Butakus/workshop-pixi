@@ -1,6 +1,6 @@
 # Ejercicio 1: tu primer workspace ROS 2
 
-> **45 minutos, práctica** · **Trabaja en:** `ejercicios/01-workspace-ros/` · **Solución:** [`soluciones/01-workspace-ros/`](../../soluciones/01-workspace-ros/)
+> **40 minutos, práctica** · **Trabaja en:** `ejercicios/01-workspace-ros/` · **Solución:** [`soluciones/01-workspace-ros/`](../../soluciones/01-workspace-ros/)
 >
 > **Objetivo:** un `pixi.toml` y un `pixi.lock` que te den turtlesim funcionando, un nodo propio compilado con colcon, el mismo workspace con dos distribuciones de ROS, y un nodo con PyTorch resuelto para una máquina con GPU y para una Jetson, todo desde tu portátil.
 
@@ -409,7 +409,7 @@ pixi list --platform jetson  # un entorno para Jetson, resuelto desde tu portát
 
 > **Con tu propio workspace:** son los mismos pasos.
 > `pixi init` en el repo, añade el canal `robostack-<tu-distro>`, añade los paquetes `ros-<tu-distro>-*` de los que dependes, y haz funcionar `colcon build` dentro del entorno como en el paso 1.4.
-> Para no traducir los `package.xml` a mano, mira el [Ejercicio 4 con `pixi-ros`](../04-nav2-pixi-ros/).
+> Para no traducir los `package.xml` a mano, [`pixi-ros`](https://github.com/ruben-arts/pixi-ros) los lee y genera el `pixi.toml`: `pixi global install pixi-ros` y `pixi-ros init --distro <tu-distro>` en la raíz del workspace.
 
 ---
 

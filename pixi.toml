@@ -34,6 +34,9 @@ cmd = "pixi lock --manifest-path soluciones/02-paquetes-ros/pixi.toml"
 [tasks.lock-solucion-03]
 cmd = "pixi lock --manifest-path soluciones/03-colaboracion/pixi.toml"
 
+[tasks.lock-solucion-04]
+cmd = "pixi lock --manifest-path soluciones/04-workspace-real/pixi.toml"
+
 [tasks.lock-soluciones]
-depends-on = ["lock-solucion-01", "lock-solucion-02", "lock-solucion-03"]
+depends-on = ["lock-solucion-01", "lock-solucion-02", "lock-solucion-03", "lock-solucion-04"]
 description = "Vuelve a resolver todas las soluciones para todas las plataformas"

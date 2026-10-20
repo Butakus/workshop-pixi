@@ -25,19 +25,20 @@ referencia/    chuleta de comandos y solución de problemas
 | Duración | Bloque | Formato |
 | --- | --- | --- |
 | 10 min | Bienvenida y comprobación de la preparación | juntos |
-| 15 min | Robótica para todos: por qué ROS necesita algo mejor | hablamos |
+| 10 min | Robótica para todos: por qué ROS necesita algo mejor | hablamos |
 | 25 min | Pixi en 25 minutos | hablamos |
-| 45 min | [Ejercicio 1: tu primer workspace ROS 2](ejercicios/01-workspace-ros/) | escribís |
+| 40 min | [Ejercicio 1: tu primer workspace ROS 2](ejercicios/01-workspace-ros/) | escribís |
 | 15 min | Construir paquetes ROS con Pixi | hablamos |
 | 35 min | [Ejercicio 2: construir y publicar paquetes ROS](ejercicios/02-paquetes-ros/) | escribís |
 | 10 min | Colaboración, CI/CD y Docker | hablamos |
-| 25 min | [Ejercicio 3: listo para tu equipo](ejercicios/03-colaboracion/) | escribís |
-| extra | [Ejercicio 4 (opcional): Nav2 con `pixi-ros`](ejercicios/04-nav2-pixi-ros/) | demo |
+| 20 min | [Ejercicio 3: listo para tu equipo](ejercicios/03-colaboracion/) | escribís |
+| 20 min | [Ejercicio 4: compilar un workspace real](ejercicios/04-workspace-real/) | escribís |
 
 - Montar un workspace ROS 2 desde cero con Pixi y RoboStack, y tener dos distros (Lyrical y Jazzy) a la vez.
 - Darle a la tortuga un cerebro con PyTorch, y resolver el entorno para una máquina con GPU y para una Jetson desde tu portátil.
 - Construir tus propios paquetes ROS con Pixi a partir de su `package.xml`, sin colcon y sin `source`, y publicarlos en un canal (local o de prefix.dev) para instalarlos desde cualquier otro workspace. Sin montar una buildfarm.
 - Llevarlo al equipo: un lockfile para Linux, macOS y Windows, CI en dos líneas, una imagen Docker y un entorno empaquetado que se ejecuta sin Pixi.
+- Compilar un workspace real de terceros (clonado con `vcs import`, dependencias traducidas desde los `package.xml`, sin `rosdep`) y lanzar un Kobuki en una casa en Gazebo.
 
 Puedes trabajar con el ejemplo de este repositorio o traer tu propio workspace ROS: cada ejercicio explica el paso equivalente.
 
@@ -75,6 +76,7 @@ Los ejercicios usan dos distribuciones de ROS y PyTorch: varios GB. Hazlo la tar
 ```bash
 pixi install --all --manifest-path soluciones/01-workspace-ros/pixi.toml
 pixi install --manifest-path soluciones/02-paquetes-ros/pixi.toml
+pixi install --manifest-path soluciones/04-workspace-real/pixi.toml
 ```
 
 `--all` descarga los entornos de Lyrical y de Jazzy, incluido PyTorch para tu máquina.
@@ -98,16 +100,13 @@ Si las dos funcionan, estás listo.
 - **Docker**, si quieres hacer la parte de Docker del Ejercicio 3 ([descarga](https://docs.docker.com/get-started/get-docker/)).
 - **Cuenta gratuita en [prefix.dev](https://prefix.dev/)**, si quieres publicar tus paquetes en un canal en la nube en el Ejercicio 2 (si no, se publica en un canal local).
 - **Cuenta de GitHub**, para la CI del Ejercicio 3.
-- **Gazebo**, solo para el Ejercicio 4 (Nav2). `gz sim` necesita OpenGL funcional; en VMs o WSL2 sin GPU puede fallar. Pruébalo:
+- **Comprobar que Gazebo se ve**, para el Ejercicio 4 (un Kobuki en una casa). `gz sim` necesita OpenGL; en máquinas virtuales o WSL2 sin GPU puede fallar. Pruébalo con la solución, que clona, compila y lanza la simulación:
 
   ```bash
-  mkdir -p /tmp/test-gz && cd /tmp/test-gz
-  pixi init . -c robostack-jazzy -c conda-forge
-  pixi add ros-jazzy-ros-gz-sim
-  pixi run gz sim shapes.sdf -v 4
+  pixi run --manifest-path soluciones/04-workspace-real/pixi.toml sim
   ```
 
-  Si va lento o no abre, prueba con `LIBGL_ALWAYS_SOFTWARE=1` delante. Si sigue sin ir, ese ejercicio se puede seguir como demo.
+  Si no abre o va muy lento, mira [solución de problemas](referencia/problemas.md#gazebo-no-abre-o-va-muy-lento). Si sigue sin ir, ese ejercicio se puede seguir en la pantalla del instructor.
 
 ### Lo que no necesitas
 

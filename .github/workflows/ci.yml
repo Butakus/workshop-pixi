@@ -109,6 +109,27 @@ jobs:
         working-directory: soluciones/02-paquetes-ros/consumidor
         run: pixi run ros2 pkg executables turtle_dancer
 
+  # Un workspace real: clonar con vcstool, compilar con colcon y encontrar el overlay.
+  workspace-real:
+    needs: lockfiles
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      MANIFEST: soluciones/04-workspace-real/pixi.toml
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          manifest-path: ${{ env.MANIFEST }}
+          locked: true
+      - name: Clonar y compilar
+        run: pixi run --manifest-path $MANIFEST build
+      - name: El overlay se carga
+        run: pixi run --manifest-path $MANIFEST test
+
   slides:
     runs-on: ubuntu-latest
     steps:

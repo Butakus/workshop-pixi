@@ -15,7 +15,7 @@ En Windows el instalador actualiza el `PATH` del usuario en el registro: cierra 
 
 ## Tienes ROS instalado en el sistema
 
-Un `source /opt/ros/<distro>/setup.bash` (o el `install/setup.bash` de otro workspace) en tu `~/.bashrc` filtra `ROS_DISTRO`, `AMENT_PREFIX_PATH`, `PYTHONPATH`, `CMAKE_PREFIX_PATH`... a todos los entornos Pixi, y las dos instalaciones se mezclan.
+Un `source /opt/ros/<distro>/setup.bash` (o el `install/setup.bash` de otro workspace) en tu `~/.bashrc` filtra `ROS_DISTRO`, `AMENT_PREFIX_PATH`, `PYTHONPATH`, `CMAKE_PREFIX_PATH`, `GZ_CONFIG_PATH`... a todos los entornos Pixi, y las dos instalaciones se mezclan.
 Síntomas típicos: errores de Python que mencionan `/opt/ros/...`, `ModuleNotFoundError` en `rclpy`, o avisos como `ROS_DISTRO was set to 'rolling' before`.
 
 Busca la línea:
@@ -92,13 +92,15 @@ qt-wayland = "*"
 QT_QPA_PLATFORM = "wayland-egl"
 ```
 
-## Gazebo Sim no abre o va muy lento
+## Gazebo no abre o va muy lento
 
 `gz sim` necesita una pila gráfica (OpenGL) funcional. En máquinas virtuales o WSL2 sin GPU, prueba el render por software:
 
 ```bash
-LIBGL_ALWAYS_SOFTWARE=1 pixi run gz sim shapes.sdf -v 4
+LIBGL_ALWAYS_SOFTWARE=1 pixi run sim
 ```
+
+Si tienes ROS o Gazebo instalados en el sistema, comprueba también que no se cuelan sus variables (`GZ_CONFIG_PATH`, `GZ_SIM_RESOURCE_PATH`...): el síntoma es un error como `libgz-sim-gui.so: cannot open shared object file` o `Version mismatch` con rutas de `/opt/ros`. Ver [Tienes ROS instalado en el sistema](#tienes-ros-instalado-en-el-sistema).
 
 ## Windows: `Cannot open include file` o `failed to persist temporary file`
 

@@ -8,6 +8,7 @@ Cada una es un workspace de Pixi independiente con su `pixi.lock`, y la CI de es
 | `01-workspace-ros/` | Lyrical y Jazzy, un nodo C++ compilado con colcon, un cerebro PyTorch, plataformas CPU/CUDA/Jetson y una operación CUDA real |
 | `02-paquetes-ros/` | El mismo paquete C++ y uno Python, construidos con `pixi-build-ros`: sin colcon, sin `source`, y recompilando cuando cambia un fuente. `consumidor/` instala los paquetes publicados desde un canal |
 | `03-colaboracion/` | Nodos de demo ya construidos, plataformas con nombre `jetson` y `workstation-gpu` resueltas desde un portátil, comprobación del lockfile, Docker y un workspace para empaquetar |
+| `04-workspace-real/` | `workspace.repos` con dos repositorios de terceros, sus dependencias en `pixi.toml` y tasks que clonan, compilan con colcon y lanzan Gazebo: `pixi run sim` |
 
 Ejecútalas desde la raíz del repositorio:
 
