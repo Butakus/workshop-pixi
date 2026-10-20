@@ -1,0 +1,951 @@
+\documentclass[aspectratio=169]{beamer}
+\usepackage{hyperref}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+\else
+  % XeTeX (tectonic, que es lo que usa `pixi run slides`) o LuaTeX: Unicode nativo.
+  \usepackage{fontspec}
+\fi
+\usepackage[spanish]{babel}
+\usepackage{csquotes}
+\usepackage{tribhuvan}
+
+% other packages
+\usepackage{latexsym,amsmath,xcolor,multicol,booktabs,calligra}
+\usepackage{graphicx,listings,textcomp}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+% Resaltado de sintaxis para listados de ficheros (pixi.toml, Dockerfile...),
+% precomputado con pygmentize por generar.py para no depender de -shell-escape.
+\usepackage{fvextra}
+\input{pygments-style.tex}
+
+\author[Francisco Martín Rico, Esteve Fernández, Juan Sebastián Cely, Francisco Miguel Moreno]{%
+\begin{tabular}{cc}
+Francisco Martín Rico & Esteve Fernández \\
+\texttt{\footnotesize fmrico@gmail.com} & \texttt{\footnotesize esteve.fernandez@gmail.com} \\[1em]
+Juan Sebastián Cely & Francisco Miguel Moreno \\
+\texttt{\footnotesize juan.cely@urjc.es} & \texttt{\footnotesize franciscom.moreno@urjc.es}
+\end{tabular}%
+}
+\title[Pixi y RoboStack]{Desde que uso Pixi estoy tan Pichi}
+\subtitle{Workspaces ROS~2 declarativos y reproducibles con Pixi y RoboStack}
+\institute{}
+
+\date{}
+\setbeamertemplate{date}{}
+\setbeamertemplate{navigation symbols}{} % ocultar iconos de navegación
+
+% defs
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+\definecolor{halfgray}{gray}{0.55}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\bfseries\color{deepblue},
+    emphstyle=\ttfamily\color{deepred},
+    stringstyle=\color{deepgreen},
+    numbers=none,
+    breaklines=true,
+    showstringspaces=false,
+    rulesepcolor=\color{red!20!green!20!blue!20},
+    frame=shadowbox,
+    literate=
+      {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+      {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+      {ñ}{{\~n}}1 {Ñ}{{\~N}}1
+      {ü}{{\"u}}1 {Ü}{{\"U}}1
+      {¿}{{\textquestiondown}}1 {¡}{{\textexclamdown}}1
+}
+
+% Frame auxiliar para preguntas/mini-retos interactivos al público
+\newcommand{\preguntaframe}[1]{%
+\begin{frame}
+  \begin{center}
+  \begin{beamercolorbox}[sep=1em,center]{block title}
+  \Large \textbf{?} \; #1
+  \end{beamercolorbox}
+  \end{center}
+\end{frame}%
+}
+
+% Frame auxiliar para marcar el inicio de un bloque práctico
+\newcommand{\practicaframe}[2]{%
+\begin{frame}
+  \centering
+  \vfill
+  {\Large \textbf{PRÁCTICA}}\\[1em]
+  {\large #1}\\[0.5em]
+  {\color{halfgray} #2}
+  \vfill
+\end{frame}%
+}
+
+% Referencia al pie de una slide
+\newcommand{\referencia}[1]{\vfill{\scriptsize\color{halfgray} #1}}
+
+% Slide de separación: título grande y subtítulo, sin título de frame.
+%   \separador{¿Por qué es tan simple?}{No tenéis que construir todo ROS vosotros.}
+\newcommand{\separador}[2]{%
+\begin{frame}
+  \centering
+  \vfill
+  {\usebeamercolor[fg]{structure}\fontsize{34}{40}\selectfont\bfseries #1\par}
+  \vspace{1.2em}
+  {\Large\color{halfgray} #2\par}
+  \vfill
+\end{frame}%
+}
+
+% Inicio de sección: la entrada del índice y su slide de separación.
+%   \seccion[Corto]{Título}{Subtítulo}
+% Sustituye al índice automático que tribhuvan.sty pone al empezar cada sección.
+\AtBeginSection[]{}
+\newcommand{\seccion}[3][]{%
+  \if\relax\detokenize{#1}\relax\section{#2}\else\section[#1]{#2}\fi
+  \separador{#2}{#3}%
+}
+
+\begin{document}
+
+%-------------------------------------------------
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Hoy}
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Duración} & \textbf{Bloque} & \textbf{Formato} \\
+\midrule
+10 min & Bienvenida y comprobación de la preparación & juntos \\
+15 min & Robótica para todos & hablamos \\
+25 min & Pixi en 25 minutos & hablamos \\
+45 min & \textbf{Ejercicio 1:} tu primer workspace ROS~2 & escribís \\
+15 min & Construir paquetes ROS con Pixi & hablamos \\
+35 min & \textbf{Ejercicio 2:} construir y publicar paquetes & escribís \\
+10 min & Colaboración, CI/CD y Docker & hablamos \\
+25 min & \textbf{Ejercicio 3:} listo para tu equipo & escribís \\
+\midrule
+extra & Ejercicio 4 (opcional): Nav2 con \texttt{pixi-ros} & demo \\
+\bottomrule
+\end{tabular}
+\referencia{Todo el material: \texttt{ejercicios/} (instrucciones paso a paso) y \texttt{soluciones/} (workspaces terminados) en el repositorio del taller.}
+\end{frame}
+
+%=================================================
+\seccion{Bienvenida}{Que vuestro workspace ROS funcione en cualquier máquina.}
+%=================================================
+
+\begin{frame}{Antes de empezar\ldots}
+\begin{itemize}
+    \item ¿Cuántos habéis tenido un \lstinline|rosdep install| que falla distinto en vuestro portátil que en el del compañero?
+    \item ¿Cuántos tenéis un \texttt{Dockerfile} de ROS~2 de más de 150 líneas solo para fijar versiones?
+    \item ¿Cuántos tenéis instalado más de un \lstinline|/opt/ros/<distro>| en la misma máquina a la vez?
+\end{itemize}
+\vfill
+\begin{block}{}
+\centering No sois los únicos. Este taller va de eso.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{¿Lo tenéis preparado?}
+\begin{terminal}
+curl -fsSL https://pixi.sh/install.sh | sh     # pixi --version >= 0.77
+git clone <repositorio-del-taller>
+cd workshop-pixi
+pixi install --all --manifest-path soluciones/01-workspace-ros/pixi.toml
+pixi run --manifest-path soluciones/01-workspace-ros/pixi.toml sim
+\end{terminal}
+\vfill
+\centering ¿Aparece una tortuga? Estáis listos.
+\vfill
+\begin{alertblock}{¿Tenéis ROS instalado en el sistema?}
+Comentad el \lstinline|source /opt/ros/...| de vuestro \lstinline|~/.bashrc| durante el taller: sus variables se cuelan en el entorno de Pixi y mezclan distros.
+\end{alertblock}
+\end{frame}
+
+%=================================================
+\seccion{Robótica para todos}{Por qué la forma de instalar ROS deja gente fuera.}
+%=================================================
+
+\begin{frame}{Entrar en ROS va atado a un SO y a una distro}
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Tienes} & \textbf{Tu camino} \\
+\midrule
+Ubuntu 24.04 & \lstinline|apt install|, el camino feliz \\
+Ubuntu 22.04 & Solo Humble. ¿Quieres Jazzy? Reinstala el SO \\
+Arch u otra Linux & Compilar desde fuente, o un contenedor \\
+macOS & Sin camino oficial. VM o Docker \\
+Windows & Soporte limitado, WSL2 o Docker \\
+\bottomrule
+\end{tabular}
+\vfill
+\begin{block}{Y además}
+\lstinline|apt install ros-jazzy-desktop| hoy y dentro de 6 meses instala builds distintos: no hay lockfile. \texttt{rosdep} llama a \texttt{apt}, \texttt{pip}\ldots\ sin fijar versiones. Y el modelo underlay/overlay (\lstinline|source ... setup.bash|) es manual y frágil.
+\end{block}
+\end{frame}
+
+\begin{frame}{``Usa Docker'' es la respuesta aceptada}
+\begin{itemize}
+    \item La instalación se vuelve posible, y el equipo comparte una imagen.
+    \item Pero tu flujo de trabajo vive dentro de una caja: editor, depurador, USB, red, GPU, GUIs\ldots\ todo cuesta más.
+    \item Docker aísla, pero \textbf{no fija el contenido}: un \lstinline|apt-get install| dentro del Dockerfile no es reproducible si no congelas todo a mano.
+    \item Se monta una vez, reconstruir es lento, y nadie lo vuelve a tocar.
+\end{itemize}
+\vfill
+\begin{alertblock}{Mensaje clave}
+Docker sigue siendo válido para desplegar, pero no debería ser la \textbf{única} fuente de verdad de las dependencias del proyecto.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Lo que queremos}
+\vfill
+\begin{terminal}
+git clone tu-proyecto
+cd tu-proyecto
+pixi run application
+\end{terminal}
+\vfill
+\centering \Large Cualquier máquina, tres comandos, y tu proyecto de robótica funciona.
+\vfill
+\normalsize ¿El equivalente a un \lstinline|package-lock.json| o un \lstinline|Cargo.lock|, \textbf{para ROS~2}?
+\vfill
+\end{frame}
+
+\separador{¿Cómo llegamos ahí?}{Todas las máquinas · Sin distro · Declarativo · Reproducible · Rápido · Simple}
+
+\begin{frame}{Cómo llegar (1/2)}
+\begin{block}{Todas las máquinas}
+Linux, macOS, Windows; x86 y arm64. Tu portátil, la CI y el robot pueden ser máquinas distintas.
+\end{block}
+\begin{block}{Sin distro}
+Una distro de ROS es un proceso de release, no un sistema operativo. Jazzy en Ubuntu 22.04, Kilted en macOS, Humble en Windows\ldots\ y dos a la vez.
+\end{block}
+\begin{block}{Declarativo}
+Tu entorno es un fichero en git: \lstinline|pixi.toml| dice lo que quieres. Vuelves a un estado bueno como vuelves atrás en el código.
+\end{block}
+\end{frame}
+
+\begin{frame}{Cómo llegar (2/2)}
+\begin{block}{Reproducible}
+Un lockfile (\lstinline|pixi.lock|) en lugar de una imagen: cada paquete, versión y hash. El mismo entorno en el portátil, en la CI y en el robot.
+\end{block}
+\begin{block}{Rápido}
+Minutos hasta tener el proyecto funcionando. Que lo único lento sea la conexión.
+\end{block}
+\begin{block}{Simple}
+Si sabes usar \texttt{pip}, sabes usar Pixi: \lstinline|pixi init|, \lstinline|pixi add|, \lstinline|pixi run|. Sin \texttt{apt}, sin \texttt{rosdep}, sin \texttt{source}, sin \texttt{sudo}.
+\end{block}
+\end{frame}
+
+\separador{¿Por qué es tan simple?}{No tenéis que construir vosotros todo ROS.}
+
+\begin{frame}{Sobre hombros de gigantes: conda-forge y RoboStack}
+\begin{center}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[
+  caja/.style={draw, rounded corners=3pt, minimum width=4.6cm, minimum height=1.6cm, align=center, line width=0.6pt},
+  fuente/.style={caja, draw=gray!60, fill=white},
+  build/.style={caja, draw=orange!70!black, fill=yellow!20},
+  canal/.style={caja, draw=blue!60, fill=blue!7},
+  flecha/.style={-{Latex[length=3mm]}, line width=1pt},
+  etiqueta/.style={above, font=\small},
+  titulo/.style={font=\large\bfseries},
+]
+\node[fuente] (oss) {{\large\bfseries Proyectos open source}\\[2pt]Python · OpenCV · CMake};
+\node[build, right=1.4cm of oss] (cfb) {{\large\bfseries Builds de conda-forge}\\[2pt]fuentes + recetas conda};
+\node[canal, right=1.4cm of cfb] (cfc) {{\large\bfseries Canal conda-forge}\\[2pt]paquetes conda precompilados};
+\node[fuente, below=2.4cm of oss] (ros) {{\large\bfseries Fuentes de paquetes ROS}\\[2pt]ROS Index / rosdistro};
+\node[build, right=1.4cm of ros] (rsb) {{\large\bfseries Builds de RoboStack}\\[2pt]fuentes ROS + recetas conda};
+\node[canal, right=1.4cm of rsb] (rsc) {{\large\bfseries Canales de RoboStack}\\[2pt]robostack-lyrical, -jazzy, \ldots};
+\draw[flecha] (oss) -- node[etiqueta] {build} (cfb);
+\draw[flecha] (cfb) -- node[etiqueta] {publish} (cfc);
+\draw[flecha] (ros) -- node[etiqueta] {build} (rsb);
+\draw[flecha] (rsb) -- node[etiqueta] {publish} (rsc);
+\draw[flecha, draw=blue!60] (cfc.south) -- ++(0,-1.2) -| node[pos=0.25, below, align=center, font=\small]
+  {{\color{blue!60}\bfseries Entorno de build}\\compiladores, herramientas y librerías} (rsb.north);
+\end{tikzpicture}%
+}
+\end{center}
+\vfill
+\centering Pixi combina paquetes de \textbf{conda-forge} y de \textbf{RoboStack} en un mismo entorno.
+\end{frame}
+
+\begin{frame}{Un dato honesto}
+\begin{alertblock}{RoboStack es hoy Tier 3}
+En la clasificación oficial de plataformas de ROS: soporte \textbf{comunitario}, no de Open Robotics.
+\end{alertblock}
+\vfill
+\begin{itemize}
+    \item Con adopción creciente, y anunciado como parte de la estrategia de accesibilidad de Open Robotics.
+    \item Mantenerlo es trabajo duro: Tobias Fischer, Silvio Traversaro, Daisuke Nishimatsu y muchos más.
+    \item ¿Falta un paquete en RoboStack? Es un pull request a \texttt{vinca.yaml}.
+\end{itemize}
+\end{frame}
+
+%=================================================
+\seccion[Pixi]{Pixi en 25 minutos}{Lo básico que necesitáis para el Ejercicio 1.}
+%=================================================
+
+\begin{frame}{¿Qué es Pixi?}
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Gestor de paquetes} & \textbf{Qué instala} \\
+\midrule
+\texttt{apt} & Paquetes Debian \\
+\texttt{brew} & Paquetes Homebrew \\
+\texttt{pip} & Paquetes Python de PyPI \\
+\texttt{pixi} & \textbf{paquetes conda + paquetes Python de PyPI} \\
+\bottomrule
+\end{tabular}
+\vfill
+\begin{itemize}
+    \item Escrito en Rust sobre \textbf{Rattler} (reimplementación del ecosistema conda), por el equipo de \textbf{prefix.dev}, autores de \textbf{mamba}.
+    \item Sin entorno \texttt{base}: un binario estático. Todo vive en la carpeta del proyecto, con \lstinline|pixi.toml| + \lstinline|pixi.lock|.
+\end{itemize}
+\end{frame}
+
+\preguntaframe{Con lo que sabéis de \texttt{pip} o \texttt{npm}, ¿cómo creéis que se instala ROS~2 con Pixi?}
+
+\begin{frame}{Instalar ROS~2}
+\centering
+\scriptsize
+\begin{tabular}{ll}
+\toprule
+\textbf{Instalación oficial en Ubuntu} & \textbf{Con Pixi + RoboStack} \\
+\midrule
+Ubuntu 24.04 y un locale UTF-8 & Pixi en Linux, macOS o Windows \\
+Universe + \texttt{ros2-apt-source} & \texttt{pixi init -c robostack-lyrical -c conda-forge} \\
+\texttt{sudo apt update \&\& sudo apt upgrade} & Sin tocar el sistema \\
+\texttt{sudo apt install ros-lyrical-desktop} & \texttt{pixi add ros-lyrical-desktop} \\
+\texttt{source /opt/ros/lyrical/setup.bash} & \texttt{pixi shell} \\
+\texttt{ros2 run demo\_nodes\_cpp talker} & \texttt{ros2 run demo\_nodes\_cpp talker} \\
+\bottomrule
+\end{tabular}
+\end{frame}
+
+\begin{frame}[fragile]{El \texttt{pixi.toml}}
+%%CODE toml
+[workspace]
+# Para qué máquinas se resuelve (y se genera el lockfile)
+platforms = ["linux-64", "osx-arm64", "win-64"]
+# De dónde salen los paquetes: RoboStack para ROS, conda-forge para el resto
+channels = ["robostack-lyrical", "conda-forge"]
+
+[dependencies]
+ros-lyrical-desktop = "*"
+
+[tasks]
+start = "ros2 launch my_package my_launch_file.launch.py"
+%%END
+\vfill
+Vive en la \textbf{raíz} de tu workspace. Además: \lstinline|[activation]|, \lstinline|[environments]|, \lstinline|[target.<plataforma>]|, \lstinline|[pypi-dependencies]|\ldots
+\end{frame}
+
+\begin{frame}{El comando \texttt{pixi}}
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Comando} & \textbf{Qué hace} \\
+\midrule
+\lstinline|pixi init| & Crea un workspace \\
+\lstinline|pixi add ros-lyrical-ros-base| & Añade la dependencia, resuelve e instala \\
+\lstinline|pixi run ros2 topic list| & Ejecuta un comando dentro del entorno \\
+\lstinline|pixi shell| & Abre un shell dentro del entorno \\
+\lstinline|pixi install| & Instala el entorno desde el lockfile \\
+\lstinline|pixi list| / \lstinline|pixi tree| & Qué hay instalado, y por qué \\
+\lstinline|pixi global install gh| & Herramientas CLI globales, aisladas \\
+\bottomrule
+\end{tabular}
+\referencia{\lstinline|pixi <comando> --help| · chuleta en \texttt{referencia/chuleta.md}}
+\end{frame}
+
+\begin{frame}[fragile]{Tasks}
+\begin{columns}[T]
+\column{0.55\linewidth}
+%%CODE toml
+[tasks]
+sim = "ros2 run turtlesim turtlesim_node"
+
+[tasks.build]
+cmd = "colcon build"
+inputs = ["src/turtle_dancer"]
+
+[tasks.dance]
+cmd = "ros2 run turtle_dancer dance"
+depends-on = ["build"]
+%%END
+\column{0.42\linewidth}
+\begin{terminal}
+# En todas las plataformas
+pixi run sim
+
+# Compila antes
+pixi run dance
+
+# Cualquier comando
+pixi run ros2 topic list
+\end{terminal}
+\end{columns}
+\vfill
+\begin{itemize}
+    \item Se ejecutan en un shell multiplataforma propio (\texttt{deno\_task\_shell}), dentro del entorno.
+    \item \lstinline|depends-on| encadena; \lstinline|inputs|/\lstinline|outputs| cachean: no se repite si nada cambió.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{pixi shell} y la activación}
+\begin{columns}[T]
+\column{0.45\linewidth}
+\begin{terminal}
+pixi shell
+ros2 topic list
+ros2 run turtlesim turtlesim_node
+exit
+\end{terminal}
+\column{0.5\linewidth}
+%%CODE toml
+[activation]
+scripts = ["install/setup.sh"]
+
+[activation.env]
+ROS_DOMAIN_ID = "42"
+%%END
+\end{columns}
+\vfill
+\begin{itemize}
+    \item \lstinline|pixi shell| te mete en el entorno, como hacía \lstinline|source install/setup.bash|.
+    \item \lstinline|pixi run| y \lstinline|pixi shell| activan el entorno primero, incluidos tus scripts.
+    \item \lstinline|pixi shell-hook| imprime la activación como un script de shell normal (lo usaremos en Docker).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{El lockfile: el porqué de la reproducibilidad}
+\begin{itemize}
+    \item \lstinline|pixi.lock| fija versión exacta, build y \textbf{sha256} de cada paquete (conda y PyPI), \textbf{para cada plataforma declarada}.
+    \item Se actualiza solo con \lstinline|pixi add| / \lstinline|pixi update|.
+    \item \lstinline|pixi install --locked| $\rightarrow$ falla si el lockfile no está sincronizado (la CI).
+    \item \lstinline|pixi lock --check| $\rightarrow$ la barrera barata en cada pull request.
+\end{itemize}
+\vfill
+\begin{block}{Se commitea a git}
+Todo el equipo, la CI y el robot instalan exactamente los mismos binarios. Es más fácil tirarlo que reconstruirlo cuando algo se actualizó sin que te enterases\ldots\ justo antes de la demo.
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Compilar tu paquete con colcon}
+Con ROS instalado y \lstinline|src/turtle_dancer/| en tu workspace:
+\begin{terminal}
+pixi add ros-dev-tools        # colcon, CMake y compiladores
+pixi run colcon build
+pixi workspace activation scripts add --target unix install/setup.sh
+pixi run ros2 run turtle_dancer dance
+\end{terminal}
+\vfill
+\begin{itemize}
+    \item Igual que siempre, pero dentro del entorno: aparecen \lstinline|build/|, \lstinline|install/| y \lstinline|log/|.
+    \item La activación carga el overlay por ti. Nada de \texttt{setuptools} ni \texttt{empy} fijados a mano.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Dos distros, un workspace}
+%%CODE toml
+[environments.default]
+channels = ["robostack-lyrical", "conda-forge"]
+[environments.default.dependencies]
+ros-lyrical-ros-base = ">=0.13"
+
+[environments.jazzy]
+channels = ["robostack-jazzy", "conda-forge"]
+[environments.jazzy.dependencies]
+ros-jazzy-ros-base = "*"
+%%END
+\vfill
+Cada entorno tiene sus canales y paquetes; las tasks se comparten.
+\lstinline|pixi run sim| para Lyrical, \lstinline|pixi run -e jazzy sim| para Jazzy.
+\vfill
+\small Imposible o muy incómodo con \texttt{apt}. Con Pixi, un entorno más.
+\end{frame}
+
+\begin{frame}[fragile]{Resolver para máquinas que no tienes}
+%%CODE toml
+[workspace]
+platforms = [
+  "linux-64", "osx-arm64", "win-64",
+  { name = "cuda-linux-64", platform = "linux-64", cuda = "12" },
+  { name = "jetson", platform = "linux-aarch64", cuda = "13" },
+]
+%%END
+\begin{terminal}
+pixi lock                          # resuelve todas las plataformas
+pixi list --platform jetson        # lo que tendría la Jetson
+\end{terminal}
+\vfill
+\centering Resolver es barato y portable; instalar es lo caro, y se hace donde toca.
+\end{frame}
+
+\begin{frame}[fragile]{Paquetes virtuales y CUDA}
+\begin{columns}[T]
+\column{0.42\linewidth}
+\begin{terminal}
+$ pixi info
+Virtual packages: __unix=0=0
+  : __linux=6.8.0=0
+  : __glibc=2.39=0
+  : __cuda=12.4=0
+  : __archspec=1=x86_64
+\end{terminal}
+\column{0.55\linewidth}
+%%CODE toml
+[dependencies]
+# GPU donde hay CUDA, CPU en el resto
+pytorch-gpu = { version = ">=2.5", when = "__cuda" }
+pytorch = ">=2.5"
+%%END
+\end{columns}
+\vfill
+\begin{itemize}
+    \item No son paquetes que instalas: son hechos sobre la máquina. El solver los usa.
+    \item En una máquina que no tienes, los declaras tú (\lstinline|cuda = "12"|).
+    \item El driver viene del SO; todo lo demás (toolkit, cuDNN, PyTorch) de conda-forge.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Un workspace nuevo en cuatro líneas}
+\vfill
+\begin{terminal}
+pixi init ros-workspace -c robostack-lyrical -c conda-forge
+cd ros-workspace
+pixi add ros-lyrical-ros-base ros-lyrical-turtlesim
+pixi run ros2 run turtlesim turtlesim_node
+\end{terminal}
+\vfill
+\end{frame}
+
+\practicaframe{Ejercicio 1: tu primer workspace ROS~2}{45 minutos · \texttt{cd ejercicios/01-workspace-ros}}
+
+\begin{frame}{Ejercicio 1: tu primer workspace ROS~2}
+\begin{enumerate}
+    \item \lstinline|pixi init|, canal \texttt{robostack-lyrical}, \lstinline|ros-lyrical-ros-base| + \lstinline|turtlesim|.
+    \item Tasks \texttt{sim}, \texttt{teleop}, \texttt{topics}.
+    \item Compilar \texttt{turtle\_dancer} con colcon y cargar el overlay con \lstinline|[activation]|.
+    \item Lyrical y Jazzy en el mismo workspace.
+    \item Un cerebro con PyTorch (\texttt{turtle\_brain}).
+    \item Plataformas: CPU, GPU (\texttt{cuda-linux-64}) y Jetson, resueltas desde tu portátil.
+    \item (Opcional) Ejecutarlo en una GPU de verdad.
+\end{enumerate}
+\vfill
+\small Instrucciones: \texttt{ejercicios/01-workspace-ros/README.md} · ¿Atascado? \texttt{soluciones/01-workspace-ros/} o levanta la mano.
+\end{frame}
+
+%=================================================
+\seccion[Paquetes]{Construir paquetes ROS con Pixi}{Sin colcon, sin overlay, sin \texttt{source}. Y sin montarse una buildfarm.}
+%=================================================
+
+\begin{frame}{Antes: tu propia buildfarm}
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=0.7cm, every node/.style={font=\footnotesize}]
+\node[draw, rounded corners, fill=green!15, minimum width=2.4cm, minimum height=0.8cm] (a) {\texttt{recipe.yaml}};
+\node[draw, rounded corners, fill=green!20, minimum width=2.4cm, minimum height=0.8cm, right=of a] (b) {rattler-build};
+\node[draw, rounded corners, fill=green!20, minimum width=2.4cm, minimum height=0.8cm, right=of b] (c) {rattler-index};
+\node[draw, rounded corners, fill=orange!15, minimum width=2.4cm, minimum height=0.8cm, right=of c] (d) {\texttt{upload prefix}};
+\node[draw, rounded corners, fill=blue!12, minimum width=2.4cm, minimum height=0.8cm, right=of d] (e) {\texttt{pixi.toml}};
+\draw[-Latex, thick] (a) -- (b);
+\draw[-Latex, thick] (b) -- (c);
+\draw[-Latex, thick] (c) -- (d);
+\draw[-Latex, thick] (d) -- (e);
+\end{tikzpicture}%
+}
+\end{center}
+\begin{itemize}
+    \item Una receta a mano por paquete, duplicando lo que ya dice el \lstinline|package.xml|.
+    \item Para ROS completo: fork de RoboStack, \texttt{vinca}, CI propia\ldots
+\end{itemize}
+\vfill
+\begin{center}
+\resizebox{0.75\linewidth}{!}{%
+\begin{tikzpicture}[node distance=0.7cm, every node/.style={font=\footnotesize}]
+\node[draw, rounded corners, fill=blue!12, minimum width=3.6cm, minimum height=0.8cm] (a) {\texttt{package.xml} + \texttt{pixi.toml}};
+\node[draw, rounded corners, fill=green!20, minimum width=2.4cm, minimum height=0.8cm, right=of a] (b) {\texttt{pixi publish}};
+\node[draw, rounded corners, fill=orange!15, minimum width=2.4cm, minimum height=0.8cm, right=of b] (c) {tu canal};
+\draw[-Latex, thick] (a) -- (b);
+\draw[-Latex, thick] (b) -- (c);
+\end{tikzpicture}%
+}
+\end{center}
+\centering \textbf{Ahora}: dos líneas junto al \lstinline|package.xml|, y un comando.
+\end{frame}
+
+\begin{frame}[fragile]{Dos papeles para un \texttt{pixi.toml}}
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Workspace} & \lstinline|[workspace]| & lo que ejecutas con \lstinline|pixi run| \\
+\textbf{Paquete} & \lstinline|[package]| & lo que Pixi construye \\
+\bottomrule
+\end{tabular}
+\vfill
+\raggedright
+Todavía en \emph{preview}: puede cambiar algo de sintaxis.
+\begin{terminal}
+pixi workspace preview add pixi-build
+pixi workspace dependencies add "pixi-build-ros >=0.7.5"
+\end{terminal}
+\end{frame}
+
+\begin{frame}[fragile]{Lo que escribes}
+\begin{columns}[T]
+\column{0.48\linewidth}
+\small \texttt{pixi.toml} (workspace)
+%%CODE toml
+[workspace]
+preview = ["pixi-build"]
+
+[workspace.dependencies]
+pixi-build-ros = ">=0.7.5"
+
+[dependencies]
+ros-lyrical-turtle-dancer = { path = "src/turtle_dancer" }
+%%END
+\column{0.48\linewidth}
+\small \texttt{src/turtle\_dancer/pixi.toml} (paquete)
+%%CODE toml
+[package.build.backend]
+name = "pixi-build-ros"
+workspace = true
+%%END
+\end{columns}
+\vfill
+\begin{itemize}
+    \item Nombre de la dependencia: el del \lstinline|package.xml| con el prefijo de la distro y guiones.
+    \item \lstinline|CMakeLists.txt| y \lstinline|setup.py| no se tocan: el backend ejecuta tu build \texttt{ament}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{pixi-build-ros} lee tu \texttt{package.xml}}
+\begin{columns}[T]
+\column{0.48\linewidth}
+\small Lo que ya tienes
+%%CODE xml tiny
+<package format="3">
+  <name>turtle_dancer</name>
+  <version>0.1.0</version>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <exec_depend>turtlesim</exec_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
+%%END
+\column{0.48\linewidth}
+\small Lo que \textbf{no} tienes que escribir
+%%CODE toml tiny
+[package]
+name = "ros-lyrical-turtle-dancer"
+version = "0.1.0"
+[package.build-dependencies]
+ros-lyrical-ament-cmake = "*"
+ros-lyrical-rclcpp = "*"
+ros-lyrical-geometry-msgs = "*"
+[package.run-dependencies]
+ros-lyrical-rclcpp = "*"
+ros-lyrical-geometry-msgs = "*"
+ros-lyrical-turtlesim = "*"
+%%END
+\end{columns}
+\vfill
+\centering \small El \lstinline|package.xml| sigue siendo la única fuente de verdad. La distro la elige el canal del workspace.
+\end{frame}
+
+\begin{frame}{El bucle editar-ejecutar}
+\begin{itemize}
+    \item \lstinline|pixi install| construye el paquete en un entorno de build aislado y lo instala en tu entorno \textbf{como un paquete conda}, al lado de \texttt{turtlesim}.
+    \item \lstinline|pixi run dance| comprueba antes las entradas (fuentes, \lstinline|package.xml|, \lstinline|CMakeLists.txt|, launch, mensajes\ldots) y reconstruye si algo cambió.
+    \item Fuera: la task \texttt{build}, \lstinline|ros-dev-tools|, la activación, \lstinline|build/ install/ log/|.
+\end{itemize}
+\vfill
+\begin{block}{}
+\centering Editar $\rightarrow$ \lstinline|pixi run| $\rightarrow$ funciona. Desde una terminal nueva, sin \texttt{source} de nada.
+\end{block}
+\end{frame}
+
+\begin{frame}{Backends de build}
+Pixi no sabe compilar tu código. Un \textbf{backend} sí.
+\vfill
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Backend} & \textbf{Construye} & \textbf{Lee} \\
+\midrule
+\texttt{pixi-build-ros} & Paquetes ROS & \lstinline|package.xml| \\
+\texttt{pixi-build-cmake} & C y C++ & \lstinline|CMakeLists.txt| \\
+\texttt{pixi-build-python} & Python & \lstinline|pyproject.toml| \\
+\texttt{pixi-build-rust} & Rust & \lstinline|Cargo.toml| \\
+\texttt{pixi-build-rattler-build} & Recetas conda & \lstinline|recipe.yaml| \\
+\bottomrule
+\end{tabular}
+\vfill
+\raggedright \small ¿Necesitas control total (parches, pasos de build propios)? Tu \lstinline|recipe.yaml| de \texttt{rattler-build} sigue valiendo: \lstinline|[package.build.config] recipe = "recipe.yaml"|.
+\end{frame}
+
+\begin{frame}[fragile]{Publicar}
+Cada paquete decide si se publica:
+%%CODE toml
+# src/turtle_dancer/pixi.toml
+[package]
+publish = true
+%%END
+\begin{terminal}
+# Canal local, como en el Ejercicio 2
+pixi publish --target-channel output
+
+# Tu canal de prefix.dev (cuenta gratuita, permiso de escritura)
+pixi auth login prefix.dev
+pixi publish --target-channel https://prefix.dev/<tu-canal>
+\end{terminal}
+\vfill
+\small Construye en orden de dependencias todos los paquetes con \lstinline|publish = true| y crea el índice del canal. Para otras plataformas: \lstinline|--target-platform|, o una matriz en la CI.
+\end{frame}
+
+\begin{frame}[fragile]{Depender de un paquete}
+\begin{columns}[T]
+\column{0.5\linewidth}
+%%CODE toml
+[workspace]
+channels = [
+  "https://prefix.dev/<tu-canal>",
+  "https://prefix.dev/robostack-lyrical",
+  "conda-forge",
+]
+
+[dependencies]
+# Ya construido, desde un canal
+ros-lyrical-turtle-dancer = "*"
+%%END
+\column{0.47\linewidth}
+%%CODE toml
+# Desde el código, local
+[dependencies.ros-lyrical-turtle-dancer]
+path = "src/turtle_dancer"
+
+# Desde git
+[dependencies.brain]
+git = "https://github.com/user/brain.git"
+branch = "main"
+%%END
+\end{columns}
+\vfill
+\small El orden de los canales importa: tu canal $\rightarrow$ RoboStack $\rightarrow$ conda-forge. El mismo patrón que la buildfarm, sin buildfarm.
+\end{frame}
+
+\practicaframe{Ejercicio 2: construir y publicar paquetes ROS}{35 minutos · \texttt{cd ejercicios/02-paquetes-ros}}
+
+\begin{frame}{Ejercicio 2: construir y publicar paquetes ROS}
+\begin{enumerate}
+    \item Activar \texttt{pixi-build} y añadir el backend al workspace.
+    \item Escribir \lstinline|src/turtle_dancer/pixi.toml|: dos líneas.
+    \item Añadir la dependencia \texttt{path}, \lstinline|pixi install|.
+    \item Borrar lo de colcon, \lstinline|pixi run dance|.
+    \item Cambiar \texttt{dance.cpp}, volver a ejecutar.
+    \item Lo mismo con \lstinline|src/turtle_choreographer| (Python).
+    \item Publicar los dos paquetes en un canal (local o prefix.dev).
+    \item Instalarlos desde otro workspace, sin código fuente.
+\end{enumerate}
+\vfill
+\small Instrucciones: \texttt{ejercicios/02-paquetes-ros/README.md}
+\end{frame}
+
+%=================================================
+\seccion[Colaboración]{Colaboración, CI/CD y Docker}{De «funciona en mi máquina» a «funciona en la del equipo».}
+%=================================================
+
+\begin{frame}[fragile]{CI en dos líneas}
+%%CODE yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          locked: true
+      - run: pixi run test
+%%END
+\begin{itemize}
+    \item Instala Pixi y el entorno desde el lockfile; ejecuta tu task.
+    \item Las mismas tasks que en tu portátil: no hay un segundo setup en YAML que se desincronice.
+    \item Caché gratis, con el hash de \lstinline|pixi.lock| como clave.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Docker: la etapa de build}
+%%CODE docker
+FROM ghcr.io/prefix-dev/pixi:0.80.0-noble AS build
+WORKDIR /app
+COPY pixi.toml pixi.lock ./
+RUN pixi install --locked
+RUN pixi shell-hook -s bash > /shell-hook.sh \
+    && echo 'exec "$@"' >> /shell-hook.sh
+%%END
+\vfill
+\begin{itemize}
+    \item Parte de la imagen de Pixi y copia el manifiesto y el lockfile.
+    \item \lstinline|--locked|: falla si el lockfile no cuadra; la imagen no puede contener algo que el equipo no probó.
+    \item Escribe la activación en un script, para la siguiente etapa.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Docker: la etapa final}
+%%CODE docker
+FROM ubuntu:26.04 AS runtime
+COPY --from=build /app/.pixi/envs/default /app/.pixi/envs/default
+COPY --from=build /shell-hook.sh /shell-hook.sh
+ENTRYPOINT ["/bin/bash", "/shell-hook.sh"]
+CMD ["ros2", "run", "demo_nodes_cpp", "talker"]
+%%END
+\vfill
+\begin{itemize}
+    \item Una imagen base normal, sin el binario de \texttt{pixi}.
+    \item Recibe el entorno terminado y el script de activación.
+    \item Portátil, CI e imagen instalan desde el mismo \lstinline|pixi.lock|.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{pixi-pack}: un entorno en un fichero}
+\begin{columns}[T]
+\column{0.45\linewidth}
+\small En tu portátil
+\begin{terminal}
+pixi-pack --platform linux-aarch64 \
+  pixi.toml
+\end{terminal}
+\column{0.5\linewidth}
+\small En el robot
+\begin{terminal}
+pixi-unpack environment.tar
+source activate.sh
+ros2 run demo_nodes_cpp talker
+\end{terminal}
+\end{columns}
+\vfill
+\begin{itemize}
+    \item Para despliegues sin red, con 4G poco fiable o sin Docker.
+    \item En el destino no hace falta Pixi, ni conda, ni conexión.
+    \item \lstinline|--create-executable|: un único fichero autoextraíble.
+\end{itemize}
+\end{frame}
+
+\practicaframe{Ejercicio 3: listo para tu equipo}{25 minutos · \texttt{cd ejercicios/03-colaboracion}}
+
+\begin{frame}{Ejercicio 3: listo para tu equipo}
+\begin{enumerate}
+    \item \lstinline|pixi global install gh| y subir el workspace a GitHub.
+    \item CI con \texttt{setup-pixi}: verla en verde.
+    \item Completar el \texttt{Dockerfile}, construir la imagen y ejecutarla: sin Pixi dentro.
+    \item Empaquetar el entorno, desempaquetarlo y ejecutar sin Pixi.
+\end{enumerate}
+\vfill
+\small Instrucciones: \texttt{ejercicios/03-colaboracion/README.md}
+\end{frame}
+
+%=================================================
+\seccion[Nav2]{Un workspace real}{Ejercicio 4 (opcional): Nav2 con \texttt{pixi-ros}, sin traducir dependencias a mano.}
+%=================================================
+
+\begin{frame}{Ejercicio 4 (opcional): un workspace real}
+\begin{itemize}
+    \item Hasta ahora, paquetes de juguete. ¿Y un workspace grande que hoy compiláis con \texttt{rosdep} y \texttt{colcon}?
+    \item \texttt{rosdep} no sirve dentro de Pixi: llama a \texttt{apt}/\texttt{pip} del sistema.
+\end{itemize}
+\vfill
+\begin{block}{\texttt{pixi-ros}}
+Escanea los \lstinline|package.xml| del workspace y genera el \lstinline|pixi.toml| con las dependencias ya traducidas a paquetes de RoboStack y conda-forge, y tasks \texttt{build}/\texttt{test} con colcon. El \lstinline|rosdep install| moderno, pero reproducible.
+\end{block}
+\vfill
+\begin{alertblock}{Aviso de timing}
+Nav2 son más de 80 paquetes C++. El build se lanza con antelación y aquí enseñamos el resultado en vivo.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Nav2 en siete comandos}
+\begin{terminal}
+pixi global install pixi-ros
+mkdir -p nav2_ws/src && cd nav2_ws
+git clone -b jazzy https://github.com/ros-navigation/navigation2.git src/navigation2
+pixi-ros init --distro jazzy --platform linux-64
+pixi add gcc_linux-64=13.3.0 gxx_linux-64=13.3.0 libboost=1.88.0 libboost-devel=1.88.0 ros-jazzy-rviz2
+pixi run build
+pixi run ros2 launch nav2_bringup tb3_simulation_launch.py
+\end{terminal}
+\vfill
+\begin{itemize}
+    \item GCC y Boost se fijan a las versiones de Ubuntu 24.04 con las que compila Nav2 Jazzy; RViz2 no es dependencia de build.
+    \item En RViz2: \textbf{2D Pose Estimate} $\rightarrow$ \textbf{Nav2 Goal} $\rightarrow$ el robot navega solo. Gazebo, RViz2 y Nav2 en un entorno Pixi, sin \texttt{sudo}, sin \texttt{apt}, sin Docker.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Con vuestro propio workspace}
+\begin{enumerate}
+    \item \lstinline|pixi-ros init --distro <distro>| en la raíz: revisad los \texttt{NOT FOUND}.
+    \item \lstinline|pixi run build| con colcon, como en el Ejercicio 1.
+    \item Paquete a paquete (empezando por las hojas), un \lstinline|pixi.toml| de dos líneas y una dependencia \texttt{path}, como en el Ejercicio 2.
+    \item \lstinline|publish = true| y \lstinline|pixi publish| desde la CI: vuestra ``buildfarm''.
+    \item \lstinline|setup-pixi| en la CI y \lstinline|pixi-pack| o Docker para el robot, como en el Ejercicio 3.
+\end{enumerate}
+\vfill
+\small Si una dependencia del \lstinline|package.xml| no está en RoboStack con ese nombre: \texttt{extra-package-mappings} en la configuración de \texttt{pixi-build-ros}.
+\end{frame}
+
+%=================================================
+\seccion{Cierre}{Lo que os lleváis, y dónde seguir.}
+%=================================================
+
+\begin{frame}{Lo que os lleváis}
+\begin{itemize}
+    \item Un workspace ROS~2 en un \lstinline|pixi.toml| + \lstinline|pixi.lock|: \lstinline|git clone|, \lstinline|cd|, \lstinline|pixi run|.
+    \item Varias distros, varias plataformas y GPU/Jetson resueltas desde vuestro portátil.
+    \item Paquetes ROS construidos desde su \lstinline|package.xml| y publicados con \lstinline|pixi publish|.
+    \item La misma definición en el portátil, en la CI, en Docker y en el robot.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Recursos}
+\small
+\begin{itemize}
+    \item Pixi: \url{https://pixi.prefix.dev} — ROS: \url{https://pixi.prefix.dev/latest/build/ros/}
+    \item RoboStack: \url{https://robostack.github.io/} — \url{https://github.com/RoboStack}
+    \item pixi-ros: \url{https://github.com/ruben-arts/pixi-ros} — Nav2: \url{https://github.com/ros-navigation/navigation2}
+    \item Discord de Pixi, canal \texttt{\#pixi}: \url{https://discord.gg/kKV8ZxyzY4}
+    \item Paper original: Fischer et al., \emph{``A RoboStack Tutorial''}, IEEE RAM 2021 (arXiv:2104.12910)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Agradecimientos}
+\begin{block}{Basado en el taller de prefix.dev en ROSCon 2026}
+\emph{Declarative ROS workspaces with Pixi and RoboStack}, de Ruben Arts, Wolf Vollprecht y Bas Zalmstra (BSD-3-Clause).\\[0.5em]
+\small\url{https://prefix-dev.github.io/roscon-2026-declarative-ros-workspaces-with-pixi/}
+\end{block}
+\vfill
+Los paquetes \texttt{turtle\_dancer}, \texttt{turtle\_choreographer} y \texttt{turtle\_brain} de los ejercicios vienen de ese taller.
+\vfill
+Y a la comunidad de conda-forge y RoboStack, sin la que nada de esto funcionaría.
+\end{frame}
+
+\begin{frame}
+  \centering
+  \Large Preguntas
+\end{frame}
+
+\end{document}

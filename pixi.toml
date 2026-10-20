@@ -1,0 +1,39 @@
+# Este workspace solo sirve para el *material* del taller (slides y lockfiles).
+# Los workspaces ROS en los que se trabaja están en `ejercicios/` y
+# `soluciones/`, cada uno con su propio `pixi.toml`.
+
+[workspace]
+name = "workshop-pixi"
+description = "Desde que uso Pixi estoy tan Pichi: entornos reproducibles para ROS 2 con Pixi y RoboStack"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+version = "0.2.0"
+
+[dependencies]
+tectonic = "*"
+python = ">=3.12"
+pygments = "*"
+
+[tasks.slides]
+cmd = "python generar.py && tectonic -X compile workshop.tex"
+cwd = "slides"
+inputs = ["slides/workshop.src.tex", "slides/generar.py", "slides/*.sty", "slides/pygments-style.tex"]
+outputs = ["slides/workshop.tex", "slides/workshop.pdf"]
+description = "Genera slides/workshop.tex desde workshop.src.tex y lo compila a PDF"
+
+# ---------------------------------------------------------------------------
+# Soluciones: cada una es un workspace independiente. `lock-soluciones`
+# comprueba que todas siguen resolviendo en todas las plataformas prometidas.
+# ---------------------------------------------------------------------------
+[tasks.lock-solucion-01]
+cmd = "pixi lock --manifest-path soluciones/01-workspace-ros/pixi.toml"
+
+[tasks.lock-solucion-02]
+cmd = "pixi lock --manifest-path soluciones/02-paquetes-ros/pixi.toml"
+
+[tasks.lock-solucion-03]
+cmd = "pixi lock --manifest-path soluciones/03-colaboracion/pixi.toml"
+
+[tasks.lock-soluciones]
+depends-on = ["lock-solucion-01", "lock-solucion-02", "lock-solucion-03"]
+description = "Vuelve a resolver todas las soluciones para todas las plataformas"

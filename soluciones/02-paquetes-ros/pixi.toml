@@ -1,0 +1,62 @@
+# Solución del Ejercicio 2: construir paquetes ROS con Pixi.
+#
+# El mismo paquete C++ que el Ejercicio 1 compilaba con colcon, más uno en
+# Python, ahora construidos e instalados por Pixi directamente desde su package.xml:
+#
+#     pixi run sim            # en una terminal
+#     pixi run dance          # en otra, C++
+#     pixi run choreograph    # ...o Python
+#
+# Compara con el Ejercicio 1: sin `colcon build`, sin `source install/setup.bash`,
+# sin build/ install/ log/, sin scripts de activación. Edita un fichero fuente y
+# vuelve a hacer `pixi run`: Pixi recompila lo que ha cambiado antes de ejecutar.
+
+[workspace]
+name = "02-paquetes-ros"
+channels = ["https://prefix.dev/robostack-lyrical", "conda-forge"]
+platforms = ["linux-64", { platform = "osx-arm64", macos = "14.0" }, "win-64"]
+version = "0.1.0"
+# Construir paquetes desde el código fuente es una funcionalidad en preview.
+preview = ["pixi-build"]
+
+# La misma versión del backend para todos los paquetes del workspace.
+[workspace.dependencies]
+pixi-build-ros = ">=0.7.5"
+
+[dependencies]
+# Nuestros paquetes, construidos desde el código. El nombre es el del package.xml
+# con el prefijo de la distro que usa RoboStack, y guiones en vez de guiones bajos.
+ros-lyrical-turtle-dancer = { path = "src/turtle_dancer" }
+ros-lyrical-turtle-choreographer = { path = "src/turtle_choreographer" }
+# Lo que necesitamos para ejecutarlos. Las librerías que necesitan los propios
+# paquetes salen de su package.xml.
+ros-lyrical-ros-base = ">=0.13"
+ros-lyrical-turtlesim = ">=1.10"
+
+[tasks.sim]
+cmd = "ros2 run turtlesim turtlesim_node"
+description = "Abre la ventana de turtlesim"
+
+[tasks.teleop]
+cmd = "ros2 run turtlesim turtle_teleop_key"
+description = "Mueve la tortuga con las flechas"
+
+[tasks.topics]
+cmd = "ros2 topic list"
+description = "Lista los topics"
+
+[tasks.dance]
+cmd = "ros2 run turtle_dancer dance"
+description = "Ejecuta el nodo C++; Pixi lo recompila antes si ha cambiado el código"
+
+[tasks.choreograph]
+cmd = "ros2 run turtle_choreographer choreograph"
+description = "Ejecuta el nodo Python; lo mismo"
+
+[tasks.executables]
+cmd = "ros2 pkg executables turtle_dancer && ros2 pkg executables turtle_choreographer"
+description = "Muestra que ROS ve nuestros nodos, igual que tras un colcon build"
+
+[tasks.test]
+cmd = "python -c \"import turtle_choreographer.choreograph as c; assert c.main; print('paquetes: ok')\""
+description = "Comprueba que los dos paquetes están construidos e instalados: lo que ejecuta la CI"

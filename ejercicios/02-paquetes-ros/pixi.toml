@@ -1,0 +1,39 @@
+# Ejercicio 2: punto de partida.
+#
+# Aquí es donde terminó el Ejercicio 1, recortado a Lyrical: ROS 2 desde
+# RoboStack y nuestro nodo C++ de src/turtle_dancer compilado con colcon.
+# Ejecuta `pixi run build` una vez antes del primer arranque para que la
+# activación encuentre el overlay. El paquete Python queda para la segunda mitad.
+#
+# Tu trabajo: pasarle la compilación a Pixi y borrar todo lo que necesitaba colcon.
+#
+# Instrucciones: ./README.md
+
+[workspace]
+name = "02-paquetes-ros"
+channels = ["https://prefix.dev/robostack-lyrical", "conda-forge"]
+platforms = [
+  "linux-64",
+  # macOS 14 hace falta para instalar MoltenVK en los entornos de build
+  { platform = "osx-arm64", macos = "14.0" },
+  "win-64",
+]
+version = "0.1.0"
+
+[dependencies]
+ros-lyrical-ros-base = ">=0.13"
+ros-lyrical-turtlesim = ">=1.10"
+ros-dev-tools = ">=1.0"
+
+[tasks]
+sim = "ros2 run turtlesim turtlesim_node"
+teleop = "ros2 run turtlesim turtle_teleop_key"
+topics = "ros2 topic list"
+build = "colcon build --packages-select turtle_dancer --install-base install/default"
+dance = { cmd = "ros2 run turtle_dancer dance", depends-on = ["build"] }
+
+[target.unix.activation]
+scripts = ["install/default/local_setup.sh"]
+
+[target.win-64.activation]
+scripts = ["install/default/local_setup.bat"]

@@ -1,0 +1,86 @@
+# Solución del Ejercicio 3: listo para tu equipo.
+#
+#   * todas las plataformas del equipo, resueltas desde la que tengas delante
+#   * plataformas con nombre para hardware que no tienes: una GPU y una Jetson
+#   * una comprobación del lockfile y un smoke test que puede ejecutar la CI
+#   * un Dockerfile que despliega exactamente el entorno del lockfile
+#
+#     pixi run lock-check       # lo que ejecuta la CI en cada pull request
+#     pixi run robot-list       # lo que acabaría en la Jetson, resuelto desde aquí
+#     pixi run docker-build     # construye la imagen de ejecución
+
+[workspace]
+name = "ros-demo-team"
+description = "Un workspace ROS 2 multiplataforma listo para un equipo, la CI y un robot"
+channels = ["https://prefix.dev/robostack-lyrical", "conda-forge"]
+version = "0.1.0"
+
+# Todas las máquinas en las que desarrolla el equipo, más el hardware de destino.
+#
+# Las entradas con nombre describen máquinas que no tenemos delante: le decimos
+# al solver qué reportan, y así resolvemos para ellas desde un portátil.
+# Resolver es barato y portable; instalar es lo caro, y solo se hace donde toca.
+platforms = [
+  "linux-64",
+  "linux-aarch64",
+  { platform = "osx-arm64", macos = "14.0" },
+  "win-64",
+  { name = "workstation-gpu", platform = "linux-64", cuda = "12.0" },
+  { name = "jetson", platform = "linux-aarch64", cuda = "12.6" },
+]
+
+[dependencies]
+ros-lyrical-demo-nodes-cpp = ">=0.37.9,<0.38"
+ros-lyrical-ros2run = ">=0.40"
+ros-lyrical-ros2topic = ">=0.40"
+
+[tasks.talker]
+cmd = "ros2 run demo_nodes_cpp talker"
+description = "Publica mensajes con el nodo de demo ya construido"
+
+[tasks.listener]
+cmd = "ros2 run demo_nodes_cpp listener"
+description = "Recibe los mensajes del talker"
+
+[tasks.lock-check]
+cmd = "pixi lock --check"
+description = "Falla si el lockfile no está al día: la barrera que impone la CI"
+
+[tasks.test]
+cmd = "ros2 pkg executables demo_nodes_cpp"
+description = "Comprueba que ROS encuentra el paquete de demo y lista sus ejecutables"
+
+[tasks.robot-list]
+cmd = "pixi list -e robot --platform jetson"
+description = "Muestra lo que se instalaría en la Jetson, sin tener una"
+
+[tasks.docker-build]
+cmd = "docker build -t ros-demo-team:latest ."
+description = "Construye la imagen de ejecución"
+
+# ---------------------------------------------------------------------------
+# El robot: aarch64 con CUDA. Se resuelve en el portátil, se instala en la Jetson.
+# ---------------------------------------------------------------------------
+[feature.robot]
+platforms = ["jetson"]
+
+[feature.robot.dependencies]
+cuda-version = ">=12.6"
+
+# ---------------------------------------------------------------------------
+# Una estación con GPU NVIDIA. Solo Linux tiene CUDA aquí, por eso la feature
+# se restringe a esa plataforma en vez de declararse para todo el workspace.
+# ---------------------------------------------------------------------------
+[feature.gpu]
+platforms = ["workstation-gpu"]
+
+[feature.gpu.dependencies]
+cuda-version = ">=12.0"
+
+[environments]
+# Lo que obtienes por defecto: los nodos de demo ya construidos.
+default = { features = [] }
+# Lo que va en el robot.
+robot = { features = ["robot"] }
+# Un sobremesa o una instancia en la nube con tarjeta NVIDIA.
+gpu = { features = ["gpu"] }

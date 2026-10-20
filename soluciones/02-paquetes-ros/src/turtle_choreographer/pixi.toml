@@ -1,0 +1,15 @@
+# El manifiesto del paquete: cómo se construye este paquete. No hay tabla
+# [workspace] a propósito: ese papel es del pixi.toml dos niveles más arriba.
+#
+# Nombre, versión, descripción, mantenedor y dependencias salen del package.xml,
+# que sigue siendo la única fuente de verdad. El CMakeLists.txt / setup.py
+# tampoco se tocan: el backend ejecuta el build ament que ya tienes.
+
+[package]
+# Permite que `pixi publish` suba este paquete.
+publish = true
+
+[package.build.backend]
+name = "pixi-build-ros"
+# La versión del backend viene de [workspace.dependencies].
+workspace = true

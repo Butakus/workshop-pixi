@@ -1,0 +1,109 @@
+# Solución del Ejercicio 1: tu primer workspace ROS 2.
+#
+# Un entorno ROS 2 completo sin tener ROS instalado en la máquina, y el mismo
+# workspace apuntando a dos distribuciones de ROS a la vez:
+#
+#     pixi run sim              # turtlesim en Lyrical
+#     pixi run teleop           # muévela con las flechas
+#     pixi run -e jazzy sim     # el mismo workspace, en Jazzy
+#     pixi run brain            # PyTorch en la CPU, o en CUDA si la hay
+#     pixi run --platform cuda-linux-64 cuda-check  # necesita una GPU NVIDIA
+#
+# colcon compila cada distro en sus propios build/, install/ y log/.
+# Ejecuta `pixi run -e <entorno> build` una vez antes de lanzar nodos en él.
+
+[workspace]
+name = "turtle-workspace"
+description = "Un workspace ROS 2 gestionado por completo con Pixi, para dos distros"
+channels = ["conda-forge"]
+platforms = [
+  { name = "cuda-linux-64", platform = "linux-64", cuda = "12" },
+  "linux-64",
+  "osx-arm64",
+  "win-64",
+  { name = "jetson", platform = "linux-aarch64", cuda = "13" },
+]
+version = "0.1.0"
+
+# ---------------------------------------------------------------------------
+# Compartido por todos los entornos: las herramientas y las tasks.
+# ---------------------------------------------------------------------------
+[dependencies]
+# colcon, CMake y compiladores para construir nuestros paquetes.
+# En Windows hacen falta antes las Visual Studio C++ Build Tools y un Windows SDK.
+ros-dev-tools = ">=1.0"
+# La versión GPU donde hay CUDA, la de CPU en el resto.
+pytorch = ">=2.5"
+pytorch-gpu = { version = ">=2.5", when = "__cuda" }
+
+[tasks.sim]
+cmd = "ros2 run turtlesim turtlesim_node"
+description = "Abre la ventana de turtlesim"
+
+[tasks.teleop]
+cmd = "ros2 run turtlesim turtle_teleop_key"
+description = "Mueve la tortuga con las flechas"
+
+[tasks.topics]
+cmd = "ros2 topic list"
+description = "Lista los topics: ROS funciona sin hacer source de nada"
+
+[tasks.build]
+cmd = "colcon --log-base log/$PIXI_ENVIRONMENT_NAME build --base-paths src --build-base build/$PIXI_ENVIRONMENT_NAME --install-base install/$PIXI_ENVIRONMENT_NAME"
+description = "Compila los paquetes en el overlay de colcon de este entorno"
+
+[tasks.test]
+cmd = "python -c \"import os; print('ros:', os.environ['ROS_DISTRO'], 'ok')\""
+description = "Comprueba que ROS está activo: lo que ejecuta la CI"
+
+[tasks.test-overlay]
+cmd = "python check_overlay.py"
+description = "Comprueba que ROS y los paquetes locales pertenecen al entorno elegido"
+
+[tasks.dance]
+cmd = "ros2 run turtle_dancer dance"
+depends-on = ["build"]
+description = "Ejecuta nuestro nodo C++ (el overlay se activa al entrar en el entorno)"
+
+[tasks.brain]
+cmd = "ros2 run turtle_brain brain"
+depends-on = ["build"]
+description = "Ejecuta el nodo con PyTorch (compila una vez antes del primer arranque)"
+
+[tasks.cuda-check]
+cmd = "python src/turtle_brain/turtle_brain/check_cuda.py"
+description = "Hace una operación real en CUDA; falla si CUDA no está disponible"
+
+# ---------------------------------------------------------------------------
+# ROS 2 Lyrical: la distro principal del taller, en el entorno por defecto.
+# Canal y paquetes propios, encima de todo lo compartido.
+# ---------------------------------------------------------------------------
+[environments.default]
+channels = ["https://prefix.dev/robostack-lyrical", "conda-forge"]
+
+[environments.default.dependencies]
+ros-lyrical-ros-base = ">=0.13"
+ros-lyrical-turtlesim = ">=1.10"
+
+[environments.default.target.unix.activation]
+scripts = ["install/default/local_setup.sh"]
+
+[environments.default.target.win-64.activation]
+scripts = ["install/default/local_setup.bat"]
+
+# ---------------------------------------------------------------------------
+# ROS 2 Jazzy (LTS): otra distribución, el mismo workspace. Otro canal y otro
+# prefijo de paquetes; las tasks son las compartidas de arriba.
+# ---------------------------------------------------------------------------
+[environments.jazzy]
+channels = ["https://prefix.dev/robostack-jazzy", "conda-forge"]
+
+[environments.jazzy.dependencies]
+ros-jazzy-ros-base = "*"
+ros-jazzy-turtlesim = "*"
+
+[environments.jazzy.target.unix.activation]
+scripts = ["install/jazzy/local_setup.sh"]
+
+[environments.jazzy.target.win-64.activation]
+scripts = ["install/jazzy/local_setup.bat"]

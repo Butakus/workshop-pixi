@@ -1,0 +1,7 @@
+# Entornos de Pixi
+.pixi/
+
+# Lo que genera pixi-pack / pixi-unpack en el paso 3.4
+environment.tar
+environment.sh
+unpacked/

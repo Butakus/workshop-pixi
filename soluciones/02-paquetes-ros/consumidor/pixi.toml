@@ -1,0 +1,22 @@
+# Un workspace "cliente" que instala los paquetes publicados en 2.7, ya
+# construidos, desde un canal: no hay código fuente ni compilación aquí.
+#
+# Antes: `pixi publish --target-channel output` en el directorio de arriba.
+# Con un canal de prefix.dev sería "https://prefix.dev/<tu-canal>".
+
+[workspace]
+name = "consumidor"
+channels = ["../output", "https://prefix.dev/robostack-lyrical", "conda-forge"]
+# Sólo la plataforma para la que publicaste (`pixi init` pone la tuya).
+# Para más plataformas: `pixi publish --target-platform <plataforma>` en cada una.
+platforms = ["linux-64"]
+
+[dependencies]
+ros-lyrical-turtle-dancer = "*"
+ros-lyrical-turtle-choreographer = "*"
+ros-lyrical-turtlesim = ">=1.10"
+
+[tasks]
+sim = "ros2 run turtlesim turtlesim_node"
+dance = "ros2 run turtle_dancer dance"
+choreograph = "ros2 run turtle_choreographer choreograph"

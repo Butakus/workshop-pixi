@@ -1,18 +1,19 @@
-# Ejercicios del taller
+# Ejercicios
 
-Material de apoyo para los bloques prácticos del taller (ver las slides en [`../slides/workshop.pdf`](../slides/workshop.pdf)). No cubre el bloque 3 (instalación y uso básico de Pixi) porque sus ejercicios son autocontenidos y muy cortos — se construyen en vivo sin necesitar plantilla.
+Trabaja en estos directorios.
+Cada uno tiene su propio workspace de partida, así que puedes empezar en cualquiera.
+Las instrucciones paso a paso están en el `README.md` de cada carpeta, con las soluciones plegadas: inténtalo primero, ábrelas si te atascas.
 
-Cada carpeta numerada corresponde a un ejercicio y sigue el mismo patrón:
+| Directorio | Empiezas con | Terminas con |
+| --- | --- | --- |
+| [`01-workspace-ros/`](01-workspace-ros/) | Un workspace vacío con nodos C++ y PyTorch ya escritos | ROS 2 funcionando, tu nodo compilado con colcon, dos distros (Lyrical y Jazzy) a la vez, y un nodo PyTorch resuelto para una GPU y una Jetson |
+| [`02-paquetes-ros/`](02-paquetes-ros/) | Ese workspace, recortado a Lyrical, con colcon compilando | Pixi construyendo el paquete C++ y uno Python desde su `package.xml`, publicados como paquetes conda e instalados desde otro workspace |
+| [`03-colaboracion/`](03-colaboracion/) | Un workspace multiplataforma con los nodos `talker`/`listener` ya construidos | CI en verde, una imagen Docker y un entorno empaquetado que se ejecuta sin Pixi |
+| [`04-nav2-pixi-ros/`](04-nav2-pixi-ros/) *(opcional)* | Nada: clonas Nav2 | Nav2 entero compilado con `pixi-ros`, simulación en Gazebo y navegación en RViz2 |
 
-- `README.md`: qué ejercicio es y cómo usar la carpeta.
-- `solucion/` (cuando aplica): el estado final esperado tras completar el ejercicio, por si os atascáis y queréis seguir el ritmo del resto del grupo, o simplemente comparar.
+Las versiones terminadas están en [`../soluciones/`](../soluciones/).
+Mirar está permitido, pero escribe tú los comandos: ahí está el aprendizaje.
 
-| Carpeta | Ejercicio |
-|---|---|
-| `05-ros2-robostack/02-mi-paquete/` | Entorno ROS 2 + paquete propio con colcon |
-| `05-ros2-robostack/04-nav2-pixi-ros/` | Nav2 completo con `pixi-ros`, simulación y navegación |
-| `07-buildfarm/hola-pichi/` | Fase A: construir un paquete con rattler-build |
-| `07-buildfarm/consumidor-pixi/` | Fase C: instalar desde un `pixi.toml` propio |
-| `07-buildfarm/consumidor-ros2/` | Fase D: integrarlo en un workspace ROS 2 |
+Si tienes tu propio workspace ROS, cada ejercicio termina con una nota "Con tu propio workspace" que explica el paso equivalente. Hacerlo sobre tu código es lo más útil, y preferimos ayudarte con eso.
 
-La Fase B (publicar en prefix.dev) no tiene carpeta propia: es solo el comando `rattler-build upload prefix` con vuestra API key, documentado en el README de `hola-pichi/` y explicado en las slides.
+Referencia: [chuleta de comandos](../referencia/chuleta.md) · [solución de problemas](../referencia/problemas.md).

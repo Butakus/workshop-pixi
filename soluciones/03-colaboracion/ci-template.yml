@@ -1,0 +1,26 @@
+# Un workflow mínimo de GitHub Actions para un workspace Pixi.
+#
+# No está activo en este repositorio: GitHub solo ejecuta los workflows de
+# `.github/workflows/`. Copia este fichero a `.github/workflows/ci.yml` en tu
+# propio repositorio.
+#
+# Una versión más completa, con matriz de plataformas y comprobación de
+# lockfiles, se ejecuta sobre todas las soluciones en `.github/workflows/ci.yml`
+# en la raíz de este repositorio.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          locked: true
+      - run: pixi run test

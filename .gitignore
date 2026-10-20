@@ -1,10 +1,24 @@
-# Entornos y artefactos de Pixi/colcon/rattler-build generados al seguir los ejercicios
+# Entornos y artefactos de Pixi/colcon generados al seguir los ejercicios
 .pixi/
 build/
 install/
 log/
 output/
 *.conda
+
+# Restos de setuptools cuando pixi-build-ros construye un paquete ament_python
+__pycache__/
+*.egg-info/
+*.py[cod]
+files.txt
+
+# pixi-pack / pixi-unpack (Ejercicio 3)
+environment.tar
+environment.sh
+unpacked/
+
+# El consumidor del Ejercicio 2 apunta a un canal local con rutas absolutas
+soluciones/02-paquetes-ros/consumidor/pixi.lock
 
 # Artefactos de compilación de LaTeX (slides/workshop.tex) — el PDF sí se versiona
 slides/*.aux
